@@ -10,6 +10,17 @@ public class FlightDetailsDTO {
     private RunawayCategory runawayCategory;
     private boolean isOpen;
 
+    public FlightDetailsDTO(int flightId, String destinationAirportCode, String airlineName, RunawayCategory category, int takeOffCounter, String runawayName, RunawayCategory runawayCategory, boolean isOpen) {
+        this.flightId = flightId;
+        this.destinationAirportCode = destinationAirportCode;
+        this.airlineName = airlineName;
+        this.category = category;
+        this.takeOffCounter = takeOffCounter;
+        this.runawayName = runawayName;
+        this.runawayCategory = runawayCategory;
+        this.isOpen = isOpen;
+    }
+
     public int getFlightId() {
         return flightId;
     }

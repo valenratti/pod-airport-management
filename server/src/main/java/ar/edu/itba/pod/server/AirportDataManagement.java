@@ -30,8 +30,17 @@ public class AirportDataManagement {
         //TODO: Implement
     }
 
-    public boolean dispatchFlights(){
-        //TODO: Implement
+    public void dispatchFlights(){
+        for(Runaway runaway : runawayQueueMap.keySet()) {
+            Queue<Flight> runawayQueue = runawayQueueMap.get(runaway);
+            Flight dispatched = runawayQueue.poll();
+            if(dispatched != null){
+                flightDetailsDTOS.add(new FlightDetailsDTO(dispatched.getId(), dispatched.getDestinationAirportCode(), dispatched.getAirlineName(), dispatched.getCategory(), dispatched.getTakeOffCounter(), runaway.getName(), runaway.getCategory(), runaway.isOpen()));
+            }
+            for(Flight flightInQueue : runawayQueue){
+                flightInQueue.setTakeOffCounter(flightInQueue.getTakeOffCounter() + 1);
+            }
+        }
     }
 
     public void reorderFlights(){
@@ -58,7 +67,7 @@ public class AirportDataManagement {
         if(optionalRunaway.isPresent()){
             Runaway runaway = optionalRunaway.get();
             if(!runaway.isOpen()){
-                throw new IllegalStateException("Runaway is already open!");
+                throw new IllegalStateException("Runaway is already closed!");
             }else{
                 runaway.setOpen(false);
                 return true;
