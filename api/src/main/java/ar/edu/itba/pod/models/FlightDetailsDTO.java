@@ -1,27 +1,25 @@
 package ar.edu.itba.pod.models;
 
-import ar.edu.itba.pod.models.RunawayCategory;
-
 import java.io.Serializable;
 
 public class FlightDetailsDTO implements Serializable {
     private int flightId;
     private String destinationAirportCode;
     private String airlineName;
-    private RunawayCategory category;
+    private RunwayCategory category;
     private int takeOffCounter;
-    private String runawayName;
-    private RunawayCategory runawayCategory;
+    private String runwayName;
+    private RunwayCategory runwayCategory;
     private boolean isOpen;
 
-    public FlightDetailsDTO(int flightId, String destinationAirportCode, String airlineName, RunawayCategory category, int takeOffCounter, String runawayName, RunawayCategory runawayCategory, boolean isOpen) {
+    public FlightDetailsDTO(int flightId, String destinationAirportCode, String airlineName, RunwayCategory category, int takeOffCounter, String runwayName, RunwayCategory runwayCategory, boolean isOpen) {
         this.flightId = flightId;
         this.destinationAirportCode = destinationAirportCode;
         this.airlineName = airlineName;
         this.category = category;
         this.takeOffCounter = takeOffCounter;
-        this.runawayName = runawayName;
-        this.runawayCategory = runawayCategory;
+        this.runwayName = runwayName;
+        this.runwayCategory = runwayCategory;
         this.isOpen = isOpen;
     }
 
@@ -37,7 +35,7 @@ public class FlightDetailsDTO implements Serializable {
         return airlineName;
     }
 
-    public RunawayCategory getCategory() {
+    public RunwayCategory getCategory() {
         return category;
     }
 
@@ -45,12 +43,12 @@ public class FlightDetailsDTO implements Serializable {
         return takeOffCounter;
     }
 
-    public String getRunawayName() {
-        return runawayName;
+    public String getRunwayName() {
+        return runwayName;
     }
 
-    public RunawayCategory getRunawayCategory() {
-        return runawayCategory;
+    public RunwayCategory getRunwayCategory() {
+        return runwayCategory;
     }
 
     public boolean isOpen() {

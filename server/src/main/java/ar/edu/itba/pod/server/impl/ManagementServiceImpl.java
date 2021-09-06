@@ -1,7 +1,7 @@
 package ar.edu.itba.pod.server.impl;
 
 import ar.edu.itba.pod.services.ManagementService;
-import ar.edu.itba.pod.models.RunawayCategory;
+import ar.edu.itba.pod.models.RunwayCategory;
 import ar.edu.itba.pod.server.AirportDataManagement;
 
 import java.rmi.RemoteException;
@@ -15,23 +15,23 @@ public class ManagementServiceImpl implements ManagementService {
     }
 
     @Override
-    public void addRunway(String runwayName, RunawayCategory category) throws RemoteException {
+    public void addRunway(String runwayName, RunwayCategory category) throws RemoteException {
         airportDataManagement.addRunway(runwayName, category);
     }
 
     @Override
     public boolean getRunwayStatus(String runwayName) throws RemoteException {
-        return airportDataManagement.getRunawayStatus(runwayName);
+        return airportDataManagement.getRunwayStatus(runwayName);
     }
 
     @Override
     public boolean openRunway(String runwayName) throws RemoteException {
-        return airportDataManagement.openRunaway(runwayName);
+        return airportDataManagement.openRunway(runwayName);
     }
 
     @Override
     public boolean closeRunway(String runwayName) throws RemoteException {
-        return airportDataManagement.closeRunaway(runwayName);
+        return airportDataManagement.closeRunway(runwayName);
     }
 
     @Override

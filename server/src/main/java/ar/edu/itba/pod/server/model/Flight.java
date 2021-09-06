@@ -1,6 +1,6 @@
 package ar.edu.itba.pod.server.model;
 
-import ar.edu.itba.pod.models.RunawayCategory;
+import ar.edu.itba.pod.models.RunwayCategory;
 
 import java.util.Objects;
 
@@ -8,10 +8,10 @@ public class Flight {
     private final int id;
     private final String destinationAirportCode;
     private final String airlineName;
-    private final RunawayCategory category;
+    private final RunwayCategory category;
     private int takeOffCounter;
 
-    public Flight(int id, String destinationAirportCode, String airlineName, RunawayCategory category) {
+    public Flight(int id, String destinationAirportCode, String airlineName, RunwayCategory category) {
         this.id = id;
         this.destinationAirportCode = destinationAirportCode;
         this.airlineName = airlineName;
@@ -35,7 +35,7 @@ public class Flight {
     }
 
 
-    public RunawayCategory getCategory() {
+    public RunwayCategory getCategory() {
         return category;
     }
 

@@ -21,7 +21,7 @@ public class TakeOffQueryServiceImpl implements TakeOffQueryService {
 
     @Override
     public List<FlightDetailsDTO> getTakeoffsByRunway(String runway) {
-        return airportDataManagement.getAllFlightsDeparturesByRunaway(runway);
+        return airportDataManagement.getAllFlightsDeparturesByRunway(runway);
     }
 
     @Override

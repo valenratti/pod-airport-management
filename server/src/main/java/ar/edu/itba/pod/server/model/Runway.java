@@ -1,15 +1,15 @@
 package ar.edu.itba.pod.server.model;
 
-import ar.edu.itba.pod.models.RunawayCategory;
+import ar.edu.itba.pod.models.RunwayCategory;
 
 import java.util.Objects;
 
-public class Runaway implements Comparable<Runaway>{
+public class Runway implements Comparable<Runway>{
     private final String name;
-    private final RunawayCategory category;
+    private final RunwayCategory category;
     private boolean isOpen;
 
-    public Runaway(String name, RunawayCategory category){
+    public Runway(String name, RunwayCategory category){
         this.name = name;
         this.category = category;
         this.isOpen = true;
@@ -19,7 +19,7 @@ public class Runaway implements Comparable<Runaway>{
         return name;
     }
 
-    public RunawayCategory getCategory() {
+    public RunwayCategory getCategory() {
         return category;
     }
 
@@ -32,7 +32,7 @@ public class Runaway implements Comparable<Runaway>{
     }
 
     @Override
-    public int compareTo(Runaway o) {
+    public int compareTo(Runway o) {
         return category.toString().compareTo(o.getCategory().toString());
     }
 
@@ -40,8 +40,8 @@ public class Runaway implements Comparable<Runaway>{
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Runaway runaway = (Runaway) o;
-        return getName().equals(runaway.getName());
+        Runway runway = (Runway) o;
+        return getName().equals(runway.getName());
     }
 
     @Override

@@ -2,22 +2,22 @@ package ar.edu.itba.pod.server;
 
 import ar.edu.itba.pod.callbacks.FlightEventsCallbackHandler;
 import ar.edu.itba.pod.exceptions.DuplicateRunwayException;
-import ar.edu.itba.pod.models.RunawayCategory;
+import ar.edu.itba.pod.models.RunwayCategory;
 import ar.edu.itba.pod.server.model.Flight;
 import ar.edu.itba.pod.models.FlightDetailsDTO;
-import ar.edu.itba.pod.server.model.Runaway;
+import ar.edu.itba.pod.server.model.Runway;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class AirportDataManagement {
-    private Map<Runaway, Queue<Flight>> runawayQueueMap;
+    private Map<Runway, Queue<Flight>> runwayQueueMap;
     private Map<Flight, List<FlightEventsCallbackHandler>> flightSubscriptions;
     private List<FlightDetailsDTO> flightDetailsDTOS;
     private static AirportDataManagement singletonInstance;
 
-    private AirportDataManagement(Map<Runaway, Queue<Flight>> runawayQueueMap, Map<Flight, List<FlightEventsCallbackHandler>> flightSubscriptions, List<FlightDetailsDTO> flightDetailsDTOS) {
-        this.runawayQueueMap = runawayQueueMap;
+    private AirportDataManagement(Map<Runway, Queue<Flight>> runwayQueueMap, Map<Flight, List<FlightEventsCallbackHandler>> flightSubscriptions, List<FlightDetailsDTO> flightDetailsDTOS) {
+        this.runwayQueueMap = runwayQueueMap;
         this.flightSubscriptions = flightSubscriptions;
         this.flightDetailsDTOS = flightDetailsDTOS;
     }
@@ -29,19 +29,19 @@ public class AirportDataManagement {
         return singletonInstance;
     }
 
-    public boolean assignFlightToRunawayIfPossible(Flight flight) {
+    public boolean assignFlightToRunwayIfPossible(Flight flight) {
         //TODO: Implement
         return false;
     }
 
     public void dispatchFlights(){
-        for(Runaway runaway : runawayQueueMap.keySet()) {
-            Queue<Flight> runawayQueue = runawayQueueMap.get(runaway);
-            Flight dispatched = runawayQueue.poll();
+        for(Runway runway : runwayQueueMap.keySet()) {
+            Queue<Flight> runwayQueue = runwayQueueMap.get(runway);
+            Flight dispatched = runwayQueue.poll();
             if(dispatched != null){
-                flightDetailsDTOS.add(new FlightDetailsDTO(dispatched.getId(), dispatched.getDestinationAirportCode(), dispatched.getAirlineName(), dispatched.getCategory(), dispatched.getTakeOffCounter(), runaway.getName(), runaway.getCategory(), runaway.isOpen()));
+                flightDetailsDTOS.add(new FlightDetailsDTO(dispatched.getId(), dispatched.getDestinationAirportCode(), dispatched.getAirlineName(), dispatched.getCategory(), dispatched.getTakeOffCounter(), runway.getName(), runway.getCategory(), runway.isOpen()));
             }
-            for(Flight flightInQueue : runawayQueue){
+            for(Flight flightInQueue : runwayQueue){
                 flightInQueue.setTakeOffCounter(flightInQueue.getTakeOffCounter() + 1);
             }
         }
@@ -51,50 +51,50 @@ public class AirportDataManagement {
         //TODO: Implement
     }
 
-    public void addRunway(String runwayName, RunawayCategory runawayCategory){
-        Runaway runaway = new Runaway(runwayName,runawayCategory);
-        if(runawayQueueMap.containsKey(runaway))
+    public void addRunway(String runwayName, RunwayCategory runwayCategory){
+        Runway runway = new Runway(runwayName, runwayCategory);
+        if(runwayQueueMap.containsKey(runway))
             throw new DuplicateRunwayException(runwayName);
 
-        runawayQueueMap.put(runaway, new LinkedList<>());
+        runwayQueueMap.put(runway, new LinkedList<>());
     }
 
-    public boolean openRunaway(String runawayName){
-        Optional<Runaway> optionalRunaway = runawayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runawayName)).findFirst();
-        if(optionalRunaway.isPresent()){
-            Runaway runaway = optionalRunaway.get();
-            if(runaway.isOpen()){
-                throw new IllegalStateException("Runaway is already open!");
+    public boolean openRunway(String runwayName){
+        Optional<Runway> optionalRunway = runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runwayName)).findFirst();
+        if(optionalRunway.isPresent()){
+            Runway runway = optionalRunway.get();
+            if(runway.isOpen()){
+                throw new IllegalStateException("Runway is already open!");
             }else{
-                runaway.setOpen(true);
+                runway.setOpen(true);
                 return true;
             }
         }else{
-            throw new NoSuchElementException("The runaway expected does not exist!");
+            throw new NoSuchElementException("The runway expected does not exist!");
         }
     }
 
-    public boolean closeRunaway(String runawayName){
-        Optional<Runaway> optionalRunaway = runawayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runawayName)).findFirst();
-        if(optionalRunaway.isPresent()){
-            Runaway runaway = optionalRunaway.get();
-            if(!runaway.isOpen()){
-                throw new IllegalStateException("Runaway is already closed!");
+    public boolean closeRunway(String runwayName){
+        Optional<Runway> optionalRunway = runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runwayName)).findFirst();
+        if(optionalRunway.isPresent()){
+            Runway runway = optionalRunway.get();
+            if(!runway.isOpen()){
+                throw new IllegalStateException("Runway is already closed!");
             }else{
-                runaway.setOpen(false);
+                runway.setOpen(false);
                 return true;
             }
         }else{
-            throw new NoSuchElementException("The runaway expected does not exist!");
+            throw new NoSuchElementException("The runway expected does not exist!");
         }
     }
 
-    public boolean getRunawayStatus(String runawayName){
-        Optional<Runaway> optionalRunaway = runawayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runawayName)).findFirst();
-        if(optionalRunaway.isPresent()){
-            return optionalRunaway.get().isOpen();
+    public boolean getRunwayStatus(String runwayName){
+        Optional<Runway> optionalRunway = runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runwayName)).findFirst();
+        if(optionalRunway.isPresent()){
+            return optionalRunway.get().isOpen();
         }else{
-            throw new NoSuchElementException("The runaway expected does not exist!");
+            throw new NoSuchElementException("The runway expected does not exist!");
         }
     }
 
@@ -102,8 +102,8 @@ public class AirportDataManagement {
         return flightDetailsDTOS;
     }
 
-    public List<FlightDetailsDTO> getAllFlightsDeparturesByRunaway(String runawayName){
-        return flightDetailsDTOS.stream().filter((dto) -> dto.getRunawayName().equals(runawayName))
+    public List<FlightDetailsDTO> getAllFlightsDeparturesByRunway(String runwayName){
+        return flightDetailsDTOS.stream().filter((dto) -> dto.getRunwayName().equals(runwayName))
                 .collect(Collectors.toList());
     }
 
