@@ -3,10 +3,10 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>ar.edu.itba.pod</groupId>
-  <artifactId>pod-airport-management-parent</artifactId>
+  <artifactId>tpe1-g3-parent</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>pod-airport-management-parent</name>
+  <name>tpe1-g3-parent</name>
   <modules>
     <module>api</module>
     <module>server</module>
