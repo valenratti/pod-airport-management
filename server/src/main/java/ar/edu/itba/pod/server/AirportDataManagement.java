@@ -1,9 +1,11 @@
 package ar.edu.itba.pod.server;
 
+import ar.edu.itba.pod.callbacks.FlightEventsCallbackHandler;
+import ar.edu.itba.pod.exceptions.DuplicateRunwayException;
+import ar.edu.itba.pod.models.RunawayCategory;
 import ar.edu.itba.pod.server.model.Flight;
-import ar.edu.itba.pod.server.model.FlightDetailsDTO;
+import ar.edu.itba.pod.models.FlightDetailsDTO;
 import ar.edu.itba.pod.server.model.Runaway;
-import ar.edu.itba.pod.server.model.RunawayStatus;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -22,12 +24,14 @@ public class AirportDataManagement {
 
     public static AirportDataManagement getInstance(){
         if(singletonInstance == null)
-            return new AirportDataManagement(new HashMap<>(), new HashMap<>(), new ArrayList<>());
-        else return singletonInstance;
+            singletonInstance = new AirportDataManagement(new HashMap<>(), new HashMap<>(), new ArrayList<>());
+
+        return singletonInstance;
     }
 
     public boolean assignFlightToRunawayIfPossible(Flight flight) {
         //TODO: Implement
+        return false;
     }
 
     public void dispatchFlights(){
@@ -45,6 +49,14 @@ public class AirportDataManagement {
 
     public void reorderFlights(){
         //TODO: Implement
+    }
+
+    public void addRunway(String runwayName, RunawayCategory runawayCategory){
+        Runaway runaway = new Runaway(runwayName,runawayCategory);
+        if(runawayQueueMap.containsKey(runaway))
+            throw new DuplicateRunwayException(runwayName);
+
+        runawayQueueMap.put(runaway, new LinkedList<>());
     }
 
     public boolean openRunaway(String runawayName){
@@ -77,10 +89,10 @@ public class AirportDataManagement {
         }
     }
 
-    public RunawayStatus consultRunawayStatus(String runawayName){
+    public boolean getRunawayStatus(String runawayName){
         Optional<Runaway> optionalRunaway = runawayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runawayName)).findFirst();
         if(optionalRunaway.isPresent()){
-            return optionalRunaway.get().isOpen() ? RunawayStatus.OPEN : RunawayStatus.CLOSED;
+            return optionalRunaway.get().isOpen();
         }else{
             throw new NoSuchElementException("The runaway expected does not exist!");
         }

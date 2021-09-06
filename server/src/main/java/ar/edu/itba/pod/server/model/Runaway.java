@@ -1,24 +1,26 @@
 package ar.edu.itba.pod.server.model;
 
-public class Runaway implements Comparable{
-    private String name;
-    private RunawayCategory category;
+import ar.edu.itba.pod.models.RunawayCategory;
+
+import java.util.Objects;
+
+public class Runaway implements Comparable<Runaway>{
+    private final String name;
+    private final RunawayCategory category;
     private boolean isOpen;
+
+    public Runaway(String name, RunawayCategory category){
+        this.name = name;
+        this.category = category;
+        this.isOpen = true;
+    }
 
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public RunawayCategory getCategory() {
         return category;
-    }
-
-    public void setCategory(RunawayCategory category) {
-        this.category = category;
     }
 
     public boolean isOpen() {
@@ -30,8 +32,20 @@ public class Runaway implements Comparable{
     }
 
     @Override
-    public int compareTo(Object o) {
-        Runaway otherRunaway = (Runaway) o;
-        return category.toString().compareTo(otherRunaway.getCategory().toString());
+    public int compareTo(Runaway o) {
+        return category.toString().compareTo(o.getCategory().toString());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Runaway runaway = (Runaway) o;
+        return getName().equals(runaway.getName());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getName());
     }
 }

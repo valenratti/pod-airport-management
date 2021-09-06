@@ -1,6 +1,10 @@
-package ar.edu.itba.pod.server.model;
+package ar.edu.itba.pod.models;
 
-public class FlightDetailsDTO {
+import ar.edu.itba.pod.models.RunawayCategory;
+
+import java.io.Serializable;
+
+public class FlightDetailsDTO implements Serializable {
     private int flightId;
     private String destinationAirportCode;
     private String airlineName;

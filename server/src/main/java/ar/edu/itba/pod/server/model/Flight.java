@@ -1,42 +1,42 @@
 package ar.edu.itba.pod.server.model;
 
+import ar.edu.itba.pod.models.RunawayCategory;
+
+import java.util.Objects;
+
 public class Flight {
-    private int id;
-    private String destinationAirportCode;
-    private String airlineName;
-    private RunawayCategory category;
+    private final int id;
+    private final String destinationAirportCode;
+    private final String airlineName;
+    private final RunawayCategory category;
     private int takeOffCounter;
+
+    public Flight(int id, String destinationAirportCode, String airlineName, RunawayCategory category) {
+        this.id = id;
+        this.destinationAirportCode = destinationAirportCode;
+        this.airlineName = airlineName;
+        this.category = category;
+        this.takeOffCounter = 0;
+    }
+
 
     public int getId() {
         return id;
     }
 
-    public void setId(int id) {
-        this.id = id;
-    }
 
     public String getDestinationAirportCode() {
         return destinationAirportCode;
     }
 
-    public void setDestinationAirportCode(String destinationAirportCode) {
-        this.destinationAirportCode = destinationAirportCode;
-    }
 
     public String getAirlineName() {
         return airlineName;
     }
 
-    public void setAirlineName(String airlineName) {
-        this.airlineName = airlineName;
-    }
 
     public RunawayCategory getCategory() {
         return category;
-    }
-
-    public void setCategory(RunawayCategory category) {
-        this.category = category;
     }
 
     public int getTakeOffCounter() {
@@ -45,5 +45,18 @@ public class Flight {
 
     public void setTakeOffCounter(int takeOffCounter) {
         this.takeOffCounter = takeOffCounter;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Flight flight = (Flight) o;
+        return getId() == flight.getId();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId());
     }
 }
