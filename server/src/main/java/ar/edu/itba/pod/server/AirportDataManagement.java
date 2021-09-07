@@ -30,6 +30,7 @@ public class AirportDataManagement {
     }
 
     public boolean assignFlightToRunwayIfPossible(Flight flight) {
+        //TODO contar los vuelos asignados y guardar los que no se pudieron asignar
         Runway finalRunway = null;
         for(Runway runway : runwayQueueMap.keySet()) {
             if(runway.isOpen() && runway.getCategory().compareTo(flight.getCategory()) >= 0) {
@@ -54,7 +55,7 @@ public class AirportDataManagement {
         }
 
         if(finalRunway == null) {
-            //TODO Lanzar excepcion.
+            //TODO Lanzar un ERROR segun la consigna.
             return false;
         } else {
             runwayQueueMap.get(finalRunway).add(flight);
@@ -78,8 +79,22 @@ public class AirportDataManagement {
     }
 
     public void reorderFlights(){
-        //TODO: Implement
-
+        //TODO faltan guardar cuales vuelos no se pudieron reordenar y contar la cantidad de reordenados.
+        Queue<Flight> flightsToReorder = new LinkedList<>();
+        boolean runwaysAreEmpty = false, isEmpty = true;
+        while(!runwaysAreEmpty) {
+            runwaysAreEmpty = true;
+            for (Runway runway : runwayQueueMap.keySet()) {
+                Queue<Flight> flights = runwayQueueMap.get(runway);
+                if(flights.size() > 0)
+                    flightsToReorder.add(flights.poll());
+                if(flights.size() > 0)
+                    runwaysAreEmpty = false;
+            }
+        }
+        for(Flight flight : flightsToReorder) {
+            assignFlightToRunwayIfPossible(flight);
+        }
     }
 
     public void addRunway(String runwayName, RunwayCategory runwayCategory){
