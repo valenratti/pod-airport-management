@@ -2,6 +2,8 @@ package ar.edu.itba.pod.server;
 
 import ar.edu.itba.pod.callbacks.FlightEventsCallbackHandler;
 import ar.edu.itba.pod.exceptions.DuplicateRunwayException;
+import ar.edu.itba.pod.exceptions.FlightNotFromAirlineException;
+import ar.edu.itba.pod.exceptions.FlightNotInQueueException;
 import ar.edu.itba.pod.models.RunwayCategory;
 import ar.edu.itba.pod.server.model.Flight;
 import ar.edu.itba.pod.models.FlightDetailsDTO;
@@ -133,6 +135,18 @@ public class AirportDataManagement {
         }else{
             throw new NoSuchElementException("The runway expected does not exist!");
         }
+    }
+
+    public void subscribeToFlight(String airlineName, int flightCode, FlightEventsCallbackHandler handler) throws FlightNotFromAirlineException, FlightNotInQueueException{
+        Optional<Flight> optionalFlight = flightSubscriptions.keySet().stream().filter(flight->flight.getId() == flightCode).findFirst();
+        if(optionalFlight.isPresent()){
+            final Flight flight = optionalFlight.get();
+            if(flight.getAirlineName().equals(airlineName))
+                flightSubscriptions.get(flight).add(handler);
+            else
+                throw new FlightNotFromAirlineException(flightCode, airlineName);
+        }else
+            throw new FlightNotInQueueException(flightCode);
     }
 
     public boolean getRunwayStatus(String runwayName){
