@@ -36,13 +36,15 @@ public class AirportDataManagement {
 
     public void dispatchFlights(){
         for(Runway runway : runwayQueueMap.keySet()) {
-            Queue<Flight> runwayQueue = runwayQueueMap.get(runway);
-            Flight dispatched = runwayQueue.poll();
-            if(dispatched != null){
-                flightDetailsDTOS.add(new FlightDetailsDTO(dispatched.getId(), dispatched.getDestinationAirportCode(), dispatched.getAirlineName(), dispatched.getCategory(), dispatched.getTakeOffCounter(), runway.getName(), runway.getCategory(), runway.isOpen()));
-            }
-            for(Flight flightInQueue : runwayQueue){
-                flightInQueue.setTakeOffCounter(flightInQueue.getTakeOffCounter() + 1);
+            if(runway.isOpen()) {
+                Queue<Flight> runwayQueue = runwayQueueMap.get(runway);
+                Flight dispatched = runwayQueue.poll();
+                if (dispatched != null) {
+                    flightDetailsDTOS.add(new FlightDetailsDTO(dispatched.getId(), dispatched.getDestinationAirportCode(), dispatched.getAirlineName(), dispatched.getCategory(), dispatched.getTakeOffCounter(), runway.getName(), runway.getCategory(), runway.isOpen()));
+                }
+                for (Flight flightInQueue : runwayQueue) {
+                    flightInQueue.setTakeOffCounter(flightInQueue.getTakeOffCounter() + 1);
+                }
             }
         }
     }
