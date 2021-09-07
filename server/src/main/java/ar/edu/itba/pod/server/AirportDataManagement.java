@@ -52,11 +52,14 @@ public class AirportDataManagement {
                 }
             }
         }
+
         if(finalRunway == null) {
             //TODO Lanzar excepcion.
+            return false;
+        } else {
+            runwayQueueMap.get(finalRunway).add(flight);
+            return true;
         }
-
-        return false;
     }
 
     public void dispatchFlights(){
@@ -76,6 +79,7 @@ public class AirportDataManagement {
 
     public void reorderFlights(){
         //TODO: Implement
+
     }
 
     public void addRunway(String runwayName, RunwayCategory runwayCategory){
