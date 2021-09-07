@@ -30,7 +30,32 @@ public class AirportDataManagement {
     }
 
     public boolean assignFlightToRunwayIfPossible(Flight flight) {
-        //TODO: Implement
+        Runway finalRunway = null;
+        for(Runway runway : runwayQueueMap.keySet()) {
+            if(runway.isOpen() && runway.getCategory().compareTo(flight.getCategory()) >= 0) {
+                if(finalRunway != null) {
+                    int runwayQueueSize = runwayQueueMap.get(runway).size();
+                    int finalRunwayQueueSize = runwayQueueMap.get(finalRunway).size();
+                    if(runwayQueueSize < finalRunwayQueueSize) {
+                        finalRunway = runway;
+                    } else if (runwayQueueSize == finalRunwayQueueSize) {
+                        int comparation = runway.getCategory().compareTo(finalRunway.getCategory());
+                        if(comparation < 0) {
+                            finalRunway = runway;
+                        } else if (comparation == 0) {
+                            if(runway.getName().compareTo(finalRunway.getName()) < 0)
+                                finalRunway = runway;
+                        }
+                    }
+                } else {
+                    finalRunway = runway;
+                }
+            }
+        }
+        if(finalRunway == null) {
+            //TODO Lanzar excepcion.
+        }
+
         return false;
     }
 
