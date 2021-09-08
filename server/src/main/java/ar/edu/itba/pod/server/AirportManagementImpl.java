@@ -4,6 +4,7 @@ import ar.edu.itba.pod.callbacks.FlightEventsCallbackHandler;
 import ar.edu.itba.pod.exceptions.DuplicateRunwayException;
 import ar.edu.itba.pod.exceptions.FlightNotFromAirlineException;
 import ar.edu.itba.pod.exceptions.FlightNotInQueueException;
+import ar.edu.itba.pod.models.ReorderFlightsResponseDTO;
 import ar.edu.itba.pod.models.RunwayCategory;
 import ar.edu.itba.pod.server.model.Flight;
 import ar.edu.itba.pod.models.FlightDetailsDTO;
@@ -122,23 +123,30 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     }
 
     @Override
-    public void reorderFlights() throws RemoteException {
-        //TODO faltan guardar cuales vuelos no se pudieron reordenar y contar la cantidad de reordenados.
+    public ReorderFlightsResponseDTO reorderFlights() throws RemoteException {
         Queue<Flight> flightsToReorder = new LinkedList<>();
-        boolean runwaysAreEmpty = false, isEmpty = true;
+        boolean runwaysAreEmpty = false;
         while(!runwaysAreEmpty) {
             runwaysAreEmpty = true;
             for (Runway runway : runwayQueueMap.keySet()) {
                 Queue<Flight> flights = runwayQueueMap.get(runway);
-                if(flights.size() > 0)
+                if(flights.size() > 0) {
                     flightsToReorder.add(flights.poll());
+                }
+                //Validate that after polling one, it still has something
                 if(flights.size() > 0)
                     runwaysAreEmpty = false;
             }
         }
+        ReorderFlightsResponseDTO reorderFlightsResponseDTO = new ReorderFlightsResponseDTO();
         for(Flight flight : flightsToReorder) {
-            assignFlightToRunwayIfPossible(flight);
+            if(assignFlightToRunwayIfPossible(flight)){
+                reorderFlightsResponseDTO.setAssignedFlightsQty(reorderFlights().getAssignedFlightsQty() + 1);
+            }else{
+                reorderFlightsResponseDTO.getNotAssignedFlights().add(flight.getId());
+            }
         }
+        return reorderFlightsResponseDTO;
     }
 
 
@@ -152,36 +160,28 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
 
 
     private boolean assignFlightToRunwayIfPossible(Flight flight) {
-        //TODO contar los vuelos asignados y guardar los que no se pudieron asignar
-        Runway finalRunway = null;
-        for(Runway runway : runwayQueueMap.keySet()) {
-            if(runway.isOpen() && runway.getCategory().compareTo(flight.getCategory()) >= 0) {
-                if(finalRunway != null) {
-                    int runwayQueueSize = runwayQueueMap.get(runway).size();
-                    int finalRunwayQueueSize = runwayQueueMap.get(finalRunway).size();
-                    if(runwayQueueSize < finalRunwayQueueSize) {
-                        finalRunway = runway;
-                    } else if (runwayQueueSize == finalRunwayQueueSize) {
-                        int comparation = runway.getCategory().compareTo(finalRunway.getCategory());
-                        if(comparation < 0) {
-                            finalRunway = runway;
-                        } else if (comparation == 0) {
-                            if(runway.getName().compareTo(finalRunway.getName()) < 0)
-                                finalRunway = runway;
-                        }
-                    }
-                } else {
-                    finalRunway = runway;
+        final Comparator<Runway> runwayComparator = (o1, o2) -> {
+            int sizeComparation = runwayQueueMap.get(o1).size() - runwayQueueMap.get(o2).size();
+            if(sizeComparation != 0){
+                return sizeComparation;
+            }else{
+                int categoryComparation = o1.getCategory().ordinal() - o2.getCategory().ordinal();
+                if(categoryComparation != 0) {
+                    return categoryComparation;
+                } else{
+                    return o1.getName().compareTo(o2.getName());
                 }
             }
-        }
+        };
 
-        if(finalRunway == null) {
-            //TODO Lanzar un ERROR segun la consigna.
-            return false;
-        } else {
-            runwayQueueMap.get(finalRunway).add(flight);
+        Optional<Runway> toBeAddedIn = runwayQueueMap.keySet().stream()
+                .filter((r) -> r.isOpen() && r.getCategory().compareTo(flight.getCategory()) >= 0)
+                .min(runwayComparator);
+        if(toBeAddedIn.isPresent()) {
+            runwayQueueMap.get(toBeAddedIn.get()).add(flight);
             return true;
+        }else{
+            return false;
         }
     }
 
