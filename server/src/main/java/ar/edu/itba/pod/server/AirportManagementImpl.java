@@ -24,18 +24,10 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     private List<FlightDetailsDTO> flightDetailsDTOS;
     private static AirportManagementImpl singletonInstance;
 
-    private AirportManagementImpl(Map<Runway, Queue<Flight>> runwayQueueMap, Map<Flight, List<FlightEventsCallbackHandler>> flightSubscriptions, List<FlightDetailsDTO> flightDetailsDTOS) {
-        this.runwayQueueMap = runwayQueueMap;
-        this.flightSubscriptions = flightSubscriptions;
-        this.flightDetailsDTOS = flightDetailsDTOS;
-    }
-
-    // TODO: Se puede eliminar?
-    public static AirportManagementImpl getInstance(){
-        if(singletonInstance == null)
-            singletonInstance = new AirportManagementImpl(new HashMap<>(), new HashMap<>(), new ArrayList<>());
-
-        return singletonInstance;
+    public AirportManagementImpl() {
+        this.runwayQueueMap = new HashMap<>();
+        this.flightSubscriptions = new HashMap<>();
+        this.flightDetailsDTOS = new ArrayList<>();
     }
 
     /* FlightTrackingService */

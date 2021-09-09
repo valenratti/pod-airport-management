@@ -5,30 +5,38 @@ import ar.edu.itba.pod.services.FlightTrackingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.MalformedURLException;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
 public class FlightTrackingClient {
     private static final Logger logger = LoggerFactory.getLogger(FlightTrackingClient.class);
 
-    public static void main(String[] args) throws RemoteException {
+    public static void main(String[] args) throws RemoteException, MalformedURLException, NotBoundException {
         logger.info("Starting flight tracking client...");
-        //TODO: RMI
-        FlightTrackingService service = null;
-        FlightEventsCallbackHandler handler = new FlightEventsCallbackHandlerImpl();
 
-        String airlineName = System.getProperty("airlineName");
-        String flightCode = System.getProperty("flightCode");
+        String serverAddress = System.getProperty("serverAddress");
+        if (serverAddress == null || serverAddress.isEmpty())
+            logger.error("You must provide the server address");
+        else {
+            FlightTrackingService service = (FlightTrackingService) Naming.lookup("//" + serverAddress +  "/tracker");
+            FlightEventsCallbackHandler handler = new FlightEventsCallbackHandlerImpl();
 
-        if(airlineName.isEmpty() || flightCode.isEmpty()){
-            logger.error("You must provide the airline name AND the flight code");
-            return;
-        }
-        try {
-            service.registerForFlight(airlineName, Integer.parseInt(flightCode), handler);
-        } catch (NumberFormatException e){
-            logger.error("Flight code must be an integer number");
-        } catch (RuntimeException e){
-            logger.error(e.getMessage());
+            String airlineName = System.getProperty("airlineName");
+            String flightCode = System.getProperty("flightCode");
+
+            if (airlineName.isEmpty() || flightCode.isEmpty()) {
+                logger.error("You must provide the airline name AND the flight code");
+                return;
+            }
+            try {
+                service.registerForFlight(airlineName, Integer.parseInt(flightCode), handler);
+            } catch (NumberFormatException e) {
+                logger.error("Flight code must be an integer number");
+            } catch (RuntimeException e) {
+                logger.error(e.getMessage());
+            }
         }
     }
 }
