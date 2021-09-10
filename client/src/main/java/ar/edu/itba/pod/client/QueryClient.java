@@ -56,12 +56,17 @@ public class QueryClient {
             else {
                 List<String> dataLines = new ArrayList<>();
                 dataLines.add("TakeOffOrders;RunwayName;FlightCode;DestinyAirport;AirlineName");
-                for (FlightDetailsDTO fd : flights)
-                    dataLines.add(fd.getTakeOffCounter() + ";" + fd.getRunwayName() + ";" + fd.getFlightId() + ";" + fd.getDestinationAirportCode()  + ";" + fd.getAirlineName());
+
+                flights.forEach(f -> dataLines.add(flightDetailsToCsvLine(f)));
 
                 Path path = Paths.get(outPath);
                 Files.write(path, dataLines);
             }
         }
+    }
+
+    private static String flightDetailsToCsvLine(FlightDetailsDTO fd) {
+        String[] aux = new String[] {String.valueOf(fd.getTakeOffCounter()), fd.getRunwayName(), String.valueOf(fd.getFlightId()), fd.getDestinationAirportCode(), fd.getAirlineName()};
+        return String.join(";", aux);
     }
 }
