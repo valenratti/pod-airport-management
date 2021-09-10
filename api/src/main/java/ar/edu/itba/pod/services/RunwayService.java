@@ -6,5 +6,13 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface RunwayService extends Remote {
+    /**
+     * Requires runway for a certain flight
+     * @param flightCode
+     * @param destinationAirport
+     * @param airlineName
+     * @param minCategory
+     * @throws RemoteException
+     */
     void requireRunway(int flightCode, String destinationAirport, String airlineName, RunwayCategory minCategory) throws RemoteException;
 }

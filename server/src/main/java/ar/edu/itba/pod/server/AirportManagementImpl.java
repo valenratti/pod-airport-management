@@ -49,7 +49,7 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     /* ManagementService */
 
     @Override
-    public void addRunway(String runwayName, RunwayCategory category) throws RemoteException {
+    public void addRunway(String runwayName, RunwayCategory category) throws RemoteException, DuplicateRunwayException {
         Runway runway = new Runway(runwayName, category);
         if(runwayQueueMap.containsKey(runway))
             throw new DuplicateRunwayException(runwayName);
@@ -195,6 +195,10 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     public List<FlightDetailsDTO> getTakeoffsByAirline(String airline) {
         return flightDetailsDTOS.stream().filter((dto) -> dto.getAirlineName().equals(airline))
                 .collect(Collectors.toList());
+    }
+
+    public Queue<Flight> getQueueForRunway(String name){
+        return runwayQueueMap.get(runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(name)).findFirst().orElseThrow(() -> new NoSuchElementException()));
     }
 
 
