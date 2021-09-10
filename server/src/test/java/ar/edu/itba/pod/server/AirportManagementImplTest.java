@@ -80,6 +80,20 @@ public class AirportManagementImplTest {
         assertEquals(1, airportManagement.getQueueForRunway("My Runway B").size());
     }
 
+    @Test
+    public void givenTwoRunwaysOpen_AfterClosingOneAndReorder_AllShouldGoToTheSame() throws RemoteException {
+        airportManagement.addRunway("My Runway A", RunwayCategory.A);
+        airportManagement.addRunway("My Runway B", RunwayCategory.B);
+        airportManagement.requireRunway(150, "Destination Airport", "Testing Airline", RunwayCategory.A);
+        airportManagement.requireRunway(151, "Destination Airport", "Testing Airline", RunwayCategory.A);
+        airportManagement.requireRunway(152, "Destination Airport", "Testing Airline", RunwayCategory.A);
+        assertEquals(2, airportManagement.getQueueForRunway("My Runway A").size());
+        assertEquals(1, airportManagement.getQueueForRunway("My Runway B").size());
+        airportManagement.closeRunway("My Runway B");
+        airportManagement.reorderFlights();
+        assertEquals(3, airportManagement.getQueueForRunway("My Runway A").size());
+    }
+
 
 
 
