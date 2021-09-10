@@ -122,18 +122,20 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
             runwaysAreEmpty = true;
             for (Runway runway : runwayQueueMap.keySet()) {
                 Queue<Flight> flights = runwayQueueMap.get(runway);
+                //Validate that there still are flights in runway
                 if(flights.size() > 0) {
                     flightsToReorder.add(flights.poll());
+                    //Validate that after polling one, it still has something
+                    if(flights.size() > 0)
+                        runwaysAreEmpty = false;
                 }
-                //Validate that after polling one, it still has something
-                if(flights.size() > 0)
-                    runwaysAreEmpty = false;
             }
         }
         ReorderFlightsResponseDTO reorderFlightsResponseDTO = new ReorderFlightsResponseDTO();
-        for(Flight flight : flightsToReorder) {
+        while (flightsToReorder.size() > 0) {
+            Flight flight = flightsToReorder.poll();
             if(assignFlightToRunwayIfPossible(flight)){
-                reorderFlightsResponseDTO.setAssignedFlightsQty(reorderFlights().getAssignedFlightsQty() + 1);
+                reorderFlightsResponseDTO.setAssignedFlightsQty( reorderFlightsResponseDTO.getAssignedFlightsQty() + 1);
             }else{
                 reorderFlightsResponseDTO.getNotAssignedFlights().add(flight.getId());
             }
