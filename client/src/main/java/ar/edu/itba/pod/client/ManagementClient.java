@@ -17,13 +17,15 @@ public class ManagementClient {
     public static void main(String[] args) throws RemoteException, MalformedURLException, NotBoundException {
         logger.info("Starting management client...");
 
+        // TODO: Funcion null or empty
+
         String serverAddress = System.getProperty("serverAddress");
         if (serverAddress == null || serverAddress.isEmpty())
             logger.error("You must provide a server address");
         else {
             ManagementService service = (ManagementService) Naming.lookup("//" + serverAddress + "/management");
 
-            String actionName = System.getProperty("actionName");
+            String actionName = System.getProperty("action");
 
             if (actionName.isEmpty()) {
                 logger.error("You must provide an action");
@@ -33,10 +35,10 @@ public class ManagementClient {
 
             switch (actionName) {
                 case "add":
-                    minCategory = System.getProperty("minCategory");
-                    runwayName = System.getProperty("runwayName");
+                    minCategory = System.getProperty("category");
+                    runwayName = System.getProperty("runway");
                     if (minCategory.isEmpty() || runwayName.isEmpty()) {
-                        logger.error("You must provide minCategory and runwayName with action {} ", actionName);
+                        logger.error("You must provide category and runway with action {} ", actionName);
                         break;
                     }
                     try {

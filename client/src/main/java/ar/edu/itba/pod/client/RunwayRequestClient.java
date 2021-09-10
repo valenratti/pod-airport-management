@@ -21,6 +21,8 @@ public class RunwayRequestClient {
     public static void main(String[] args) throws MalformedURLException, NotBoundException, RemoteException {
         logger.info("Starting runway request client...");
 
+        // TODO: Funcion null or empty
+
         String serverAddress = System.getProperty("serverAddress");
         if (serverAddress == null || serverAddress.isEmpty()) {
             logger.error("You must provide a server address");

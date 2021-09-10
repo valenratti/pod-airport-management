@@ -16,6 +16,8 @@ public class FlightTrackingClient {
     public static void main(String[] args) throws RemoteException, MalformedURLException, NotBoundException {
         logger.info("Starting flight tracking client...");
 
+        // TODO: Funcion null or empty
+
         String serverAddress = System.getProperty("serverAddress");
         if (serverAddress == null || serverAddress.isEmpty())
             logger.error("You must provide the server address");
@@ -23,7 +25,7 @@ public class FlightTrackingClient {
             FlightTrackingService service = (FlightTrackingService) Naming.lookup("//" + serverAddress +  "/tracker");
             FlightEventsCallbackHandler handler = new FlightEventsCallbackHandlerImpl();
 
-            String airlineName = System.getProperty("airlineName");
+            String airlineName = System.getProperty("airline");
             String flightCode = System.getProperty("flightCode");
 
             if (airlineName.isEmpty() || flightCode.isEmpty()) {
