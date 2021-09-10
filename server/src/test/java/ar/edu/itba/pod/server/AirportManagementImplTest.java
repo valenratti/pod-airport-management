@@ -48,8 +48,7 @@ public class AirportManagementImplTest {
     public void closeRunwayThatIsAlreadyClosed_ShouldThrowException() throws RemoteException {
         airportManagement.addRunway("My Runway", RunwayCategory.A);
         airportManagement.closeRunway("My Runway");
-
-        assertThrows(IllegalStateException.class, () -> airportManagement.openRunway("My Runway"));
+        assertThrows(IllegalStateException.class, () -> airportManagement.closeRunway("My Runway"));
     }
 
     @Test
