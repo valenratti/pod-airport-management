@@ -58,6 +58,7 @@ public class ManagementClient {
                         break;
                     }
                     service.openRunway(runwayName);
+                    System.out.println("Runway " + runwayName + " is now open");
                     break;
                 case "close":
                     runwayName = System.getProperty("runwayName");
@@ -66,6 +67,7 @@ public class ManagementClient {
                         break;
                     }
                     service.closeRunway(runwayName);
+                    System.out.println("Runway " + runwayName + " is now close");
                     break;
                 case "status":
                     runwayName = System.getProperty("runwayName");
@@ -77,9 +79,11 @@ public class ManagementClient {
                     break;
                 case "takeOff":
                     service.takeOff();
+                    System.out.println("Flights took off successfully");
                     break;
                 case "reorder":
                     service.reorderFlights();
+                    System.out.println("Flights reordered");
                     break;
                 default:
                     logger.error("Invalid action {}", actionName);

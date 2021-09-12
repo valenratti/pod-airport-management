@@ -13,6 +13,7 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class RunwayRequestClient {
@@ -38,7 +39,19 @@ public class RunwayRequestClient {
                             .skip(1)
                             .map(CSVFlightDTO::toCsvFlightDTO)
                             .collect(Collectors.toList());
-                    csvFlightDTOList.forEach(System.out::println);
+                    AtomicInteger assigned = new AtomicInteger();
+                    csvFlightDTOList.forEach(flight-> {
+                        try {
+                            boolean couldAssign = service.requireRunway(flight.getId(),flight.getDestinationAirportCode(), flight.getAirlineName(),flight.getCategory());
+                            if(couldAssign)
+                                assigned.getAndIncrement();
+                            else
+                                System.out.println("Cannot assign Flight " + flight.getId());
+                        } catch (RemoteException e) {
+                            logger.error(e.getMessage());
+                        }
+                    });
+                    System.out.println(assigned + " flights assigned");
                 } catch (IOException e) {
                     logger.error(e.getMessage());
                 }

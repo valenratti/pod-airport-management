@@ -36,7 +36,7 @@ public class QueryClient {
 
             String airlineName = System.getProperty("airline");
             String runwayName = System.getProperty("runway");
-            boolean emptyAirline = airlineName.isEmpty(), emptyRunway = runwayName.isEmpty();
+            boolean emptyAirline = Utils.isNullOrEmpty(airlineName), emptyRunway = Utils.isNullOrEmpty(runwayName);
 
             if (!emptyAirline && !emptyRunway) {
                 logger.error("You can't provide both runway and airline");

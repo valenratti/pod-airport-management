@@ -13,6 +13,7 @@ public interface RunwayService extends Remote {
      * @param airlineName
      * @param minCategory
      * @throws RemoteException
+     * @return
      */
-    void requireRunway(int flightCode, String destinationAirport, String airlineName, RunwayCategory minCategory) throws RemoteException;
+    boolean requireRunway(int flightCode, String destinationAirport, String airlineName, RunwayCategory minCategory) throws RemoteException;
 }

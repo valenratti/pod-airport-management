@@ -145,9 +145,9 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     /* RunwayService */
 
     @Override
-    public void requireRunway(int flightCode, String destinationAirport, String airlineName, RunwayCategory minCategory) throws RemoteException {
+    public boolean requireRunway(int flightCode, String destinationAirport, String airlineName, RunwayCategory minCategory) throws RemoteException {
         final Flight flight = new Flight(flightCode, destinationAirport, airlineName, minCategory);
-        assignFlightToRunwayIfPossible(flight);
+        return assignFlightToRunwayIfPossible(flight);
     }
 
 
