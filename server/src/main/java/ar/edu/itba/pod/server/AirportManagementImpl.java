@@ -24,6 +24,7 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     private List<FlightDetailsDTO> flightDetailsDTOS;
     private static AirportManagementImpl singletonInstance;
     private static final Object registerLock = "resgisterLock";
+    private static final Object statusLock = "statusLock";
 
     public AirportManagementImpl() {
         this.runwayQueueMap = new HashMap<>();
@@ -35,7 +36,7 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     
     @Override
     public void registerForFlight(String airlineName, int flightCode, FlightEventsCallbackHandler callbackHandler) throws RemoteException, FlightNotFromAirlineException, FlightNotInQueueException {
-        synchronized (registerLock){
+        synchronized (registerLock) {
             Optional<Flight> optionalFlight = flightSubscriptions.keySet().stream().filter(flight->flight.getId() == flightCode).findFirst();
             if(optionalFlight.isPresent()){
                 final Flight flight = optionalFlight.get();
@@ -71,39 +72,43 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
 
     @Override
     public boolean openRunway(String runwayName) throws RemoteException {
-        Optional<Runway> optionalRunway = runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runwayName)).findFirst();
-        if(optionalRunway.isPresent()){
-            Runway runway = optionalRunway.get();
-            if(runway.isOpen()){
-                throw new IllegalStateException("Runway is already open!");
+        synchronized (statusLock) {
+            Optional<Runway> optionalRunway = runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runwayName)).findFirst();
+            if(optionalRunway.isPresent()){
+                Runway runway = optionalRunway.get();
+                if(runway.isOpen()){
+                    throw new IllegalStateException("Runway is already open!");
+                }else{
+                    runway.setOpen(true);
+                    return true;
+                }
             }else{
-                runway.setOpen(true);
-                return true;
+                throw new NoSuchElementException("The runway expected does not exist!");
             }
-        }else{
-            throw new NoSuchElementException("The runway expected does not exist!");
         }
     }
 
     @Override
     public boolean closeRunway(String runwayName) throws RemoteException {
-        Optional<Runway> optionalRunway = runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runwayName)).findFirst();
-        if(optionalRunway.isPresent()){
-            Runway runway = optionalRunway.get();
-            if(!runway.isOpen()){
-                throw new IllegalStateException("Runway is already closed!");
+        synchronized (statusLock) {
+            Optional<Runway> optionalRunway = runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runwayName)).findFirst();
+            if(optionalRunway.isPresent()){
+                Runway runway = optionalRunway.get();
+                if(!runway.isOpen()){
+                    throw new IllegalStateException("Runway is already closed!");
+                }else{
+                    runway.setOpen(false);
+                    return true;
+                }
             }else{
-                runway.setOpen(false);
-                return true;
+                throw new NoSuchElementException("The runway expected does not exist!");
             }
-        }else{
-            throw new NoSuchElementException("The runway expected does not exist!");
         }
     }
 
     @Override
     public void takeOff() throws RemoteException {
-        synchronized (runwayQueueMap){
+        synchronized (runwayQueueMap) {
             runwayQueueMap.keySet().stream().filter(Runway::isOpen).forEach( (runway) -> {
                 Queue<Flight> runwayQueue = runwayQueueMap.get(runway);
                 Flight dispatched = runwayQueue.poll();
