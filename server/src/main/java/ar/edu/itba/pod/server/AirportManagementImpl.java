@@ -23,6 +23,7 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     private Map<Flight, List<FlightEventsCallbackHandler>> flightSubscriptions;
     private List<FlightDetailsDTO> flightDetailsDTOS;
     private static AirportManagementImpl singletonInstance;
+    private static final Object registerLock = "resgisterLock";
 
     public AirportManagementImpl() {
         this.runwayQueueMap = new HashMap<>();
@@ -34,15 +35,17 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     
     @Override
     public void registerForFlight(String airlineName, int flightCode, FlightEventsCallbackHandler callbackHandler) throws RemoteException, FlightNotFromAirlineException, FlightNotInQueueException {
-        Optional<Flight> optionalFlight = flightSubscriptions.keySet().stream().filter(flight->flight.getId() == flightCode).findFirst();
-        if(optionalFlight.isPresent()){
-            final Flight flight = optionalFlight.get();
-            if(flight.getAirlineName().equals(airlineName))
-                flightSubscriptions.get(flight).add(callbackHandler);
-            else
-                throw new FlightNotFromAirlineException(flightCode, airlineName);
-        }else
-            throw new FlightNotInQueueException(flightCode);
+        synchronized (registerLock){
+            Optional<Flight> optionalFlight = flightSubscriptions.keySet().stream().filter(flight->flight.getId() == flightCode).findFirst();
+            if(optionalFlight.isPresent()){
+                final Flight flight = optionalFlight.get();
+                if(flight.getAirlineName().equals(airlineName))
+                    flightSubscriptions.get(flight).add(callbackHandler);
+                else
+                    throw new FlightNotFromAirlineException(flightCode, airlineName);
+            }else
+                throw new FlightNotInQueueException(flightCode);
+        }
     }
 
 
@@ -100,16 +103,18 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
 
     @Override
     public void takeOff() throws RemoteException {
-        runwayQueueMap.keySet().stream().filter(Runway::isOpen).forEach( (runway) -> {
-            Queue<Flight> runwayQueue = runwayQueueMap.get(runway);
-            Flight dispatched = runwayQueue.poll();
-            if (dispatched != null) {
-                flightDetailsDTOS.add(new FlightDetailsDTO(dispatched.getId(), dispatched.getDestinationAirportCode(), dispatched.getAirlineName(), dispatched.getCategory(), dispatched.getTakeOffCounter(), runway.getName(), runway.getCategory(), runway.isOpen()));
-            }
-            for (Flight flightInQueue : runwayQueue) {
-                flightInQueue.setTakeOffCounter(flightInQueue.getTakeOffCounter() + 1);
-            }
-        });
+        synchronized (runwayQueueMap){
+            runwayQueueMap.keySet().stream().filter(Runway::isOpen).forEach( (runway) -> {
+                Queue<Flight> runwayQueue = runwayQueueMap.get(runway);
+                Flight dispatched = runwayQueue.poll();
+                if (dispatched != null) {
+                    flightDetailsDTOS.add(new FlightDetailsDTO(dispatched.getId(), dispatched.getDestinationAirportCode(), dispatched.getAirlineName(), dispatched.getCategory(), dispatched.getTakeOffCounter(), runway.getName(), runway.getCategory(), runway.isOpen()));
+                }
+                for (Flight flightInQueue : runwayQueue) {
+                    flightInQueue.setTakeOffCounter(flightInQueue.getTakeOffCounter() + 1);
+                }
+            });
+        }
     }
 
     @Override
@@ -152,28 +157,29 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
 
 
     private boolean assignFlightToRunwayIfPossible(Flight flight) {
-        final Comparator<Runway> runwayComparator = (o1, o2) -> {
-            int sizeComparation = runwayQueueMap.get(o1).size() - runwayQueueMap.get(o2).size();
-            if(sizeComparation != 0){
-                return sizeComparation;
-            }else{
-                int categoryComparation = o1.getCategory().ordinal() - o2.getCategory().ordinal();
-                if(categoryComparation != 0) {
-                    return categoryComparation;
-                } else{
-                    return o1.getName().compareTo(o2.getName());
+        synchronized (runwayQueueMap){
+            final Comparator<Runway> runwayComparator = (o1, o2) -> {
+                int sizeComparation = runwayQueueMap.get(o1).size() - runwayQueueMap.get(o2).size();
+                if(sizeComparation != 0){
+                    return sizeComparation;
+                }else{
+                    int categoryComparation = o1.getCategory().ordinal() - o2.getCategory().ordinal();
+                    if(categoryComparation != 0) {
+                        return categoryComparation;
+                    } else{
+                        return o1.getName().compareTo(o2.getName());
+                    }
                 }
+            };
+            Optional<Runway> toBeAddedIn = runwayQueueMap.keySet().stream()
+                    .filter((r) -> r.isOpen() && r.getCategory().compareTo(flight.getCategory()) >= 0)
+                    .min(runwayComparator);
+            if(toBeAddedIn.isPresent()) {
+                runwayQueueMap.get(toBeAddedIn.get()).add(flight);
+                return true;
+            }else{
+                return false;
             }
-        };
-
-        Optional<Runway> toBeAddedIn = runwayQueueMap.keySet().stream()
-                .filter((r) -> r.isOpen() && r.getCategory().compareTo(flight.getCategory()) >= 0)
-                .min(runwayComparator);
-        if(toBeAddedIn.isPresent()) {
-            runwayQueueMap.get(toBeAddedIn.get()).add(flight);
-            return true;
-        }else{
-            return false;
         }
     }
 
