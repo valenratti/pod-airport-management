@@ -144,6 +144,35 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
         return reorderFlightsResponseDTO;
     }
 
+    public ReorderFlightsResponseDTO reorderFlightsForTest() throws RemoteException, InterruptedException {
+        Queue<Flight> flightsToReorder = new LinkedList<>();
+        boolean runwaysAreEmpty = false;
+        while(!runwaysAreEmpty) {
+            runwaysAreEmpty = true;
+            for (Runway runway : runwayQueueMap.keySet()) {
+                Queue<Flight> flights = runwayQueueMap.get(runway);
+                //Validate that there still are flights in runway
+                if(flights.size() > 0) {
+                    flightsToReorder.add(flights.poll());
+                    //Validate that after polling one, it still has something
+                    if(flights.size() > 0)
+                        runwaysAreEmpty = false;
+                }
+            }
+        }
+        ReorderFlightsResponseDTO reorderFlightsResponseDTO = new ReorderFlightsResponseDTO();
+        while (flightsToReorder.size() > 0) {
+            Flight flight = flightsToReorder.poll();
+            if(assignFlightToRunwayIfPossible(flight)){
+                reorderFlightsResponseDTO.setAssignedFlightsQty( reorderFlightsResponseDTO.getAssignedFlightsQty() + 1);
+            }else{
+                reorderFlightsResponseDTO.getNotAssignedFlights().add(flight.getId());
+            }
+            Thread.sleep(100);
+        }
+        return reorderFlightsResponseDTO;
+    }
+
 
     /* RunwayService */
 
@@ -212,6 +241,10 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
 
     public long getRunwaysQuantity(){
         return runwayQueueMap.values().stream().mapToLong(Collection::size).count();
+    }
+
+    public long getFlightsQuantity(){
+        return runwayQueueMap.values().stream().map(Collection::size).reduce(0, Integer::sum);
     }
 
 }

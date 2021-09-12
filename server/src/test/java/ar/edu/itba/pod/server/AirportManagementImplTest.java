@@ -93,7 +93,4 @@ public class AirportManagementImplTest {
         assertEquals(3, airportManagement.getQueueForRunway("My Runway A").size());
     }
 
-
-
-
 }
