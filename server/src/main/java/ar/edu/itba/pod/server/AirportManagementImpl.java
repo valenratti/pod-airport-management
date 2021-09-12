@@ -181,18 +181,18 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     /* TakeOffQueryService */
 
     @Override
-    public List<FlightDetailsDTO> getAllTakeoffs() {
+    public List<FlightDetailsDTO> getAllTakeoffs() throws RemoteException {
         return flightDetailsDTOS;
     }
 
     @Override
-    public List<FlightDetailsDTO> getTakeoffsByRunway(String runway) {
+    public List<FlightDetailsDTO> getTakeoffsByRunway(String runway) throws RemoteException{
         return flightDetailsDTOS.stream().filter((dto) -> dto.getRunwayName().equals(runway))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<FlightDetailsDTO> getTakeoffsByAirline(String airline) {
+    public List<FlightDetailsDTO> getTakeoffsByAirline(String airline) throws RemoteException {
         return flightDetailsDTOS.stream().filter((dto) -> dto.getAirlineName().equals(airline))
                 .collect(Collectors.toList());
     }
