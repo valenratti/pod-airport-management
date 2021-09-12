@@ -2,6 +2,7 @@ package ar.edu.itba.pod.server;
 
 import ar.edu.itba.pod.callbacks.FlightEventsCallbackHandler;
 import ar.edu.itba.pod.exceptions.DuplicateRunwayException;
+import ar.edu.itba.pod.exceptions.DuplicatedFlightException;
 import ar.edu.itba.pod.exceptions.FlightNotFromAirlineException;
 import ar.edu.itba.pod.exceptions.FlightNotInQueueException;
 import ar.edu.itba.pod.models.ReorderFlightsResponseDTO;
@@ -16,6 +17,7 @@ import ar.edu.itba.pod.services.TakeOffQueryService;
 
 import java.rmi.RemoteException;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Collectors;
 
 public class AirportManagementImpl implements FlightTrackingService, ManagementService, RunwayService, TakeOffQueryService {
@@ -49,12 +51,13 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     /* ManagementService */
 
     @Override
-    public void addRunway(String runwayName, RunwayCategory category) throws RemoteException, DuplicateRunwayException {
+    public synchronized void addRunway(String runwayName, RunwayCategory category) throws RemoteException, DuplicateRunwayException {
         Runway runway = new Runway(runwayName, category);
-        if(runwayQueueMap.containsKey(runway))
+        if(runwayQueueMap.containsKey(runway)) {
             throw new DuplicateRunwayException(runwayName);
-
-        runwayQueueMap.put(runway, new LinkedList<>());    }
+        }
+        runwayQueueMap.put(runway, new ConcurrentLinkedDeque<>());
+    }
 
     @Override
     public boolean getRunwayStatus(String runwayName) throws RemoteException {
@@ -146,6 +149,12 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
 
     @Override
     public void requireRunway(int flightCode, String destinationAirport, String airlineName, RunwayCategory minCategory) throws RemoteException {
+        runwayQueueMap.values().forEach((queue) -> {
+            queue.forEach((flight -> {
+                if(flight.getId() == flightCode)
+                    throw new DuplicatedFlightException((String.valueOf(Integer.valueOf(flightCode))));
+            }));
+        });
         final Flight flight = new Flight(flightCode, destinationAirport, airlineName, minCategory);
         assignFlightToRunwayIfPossible(flight);
     }
@@ -201,5 +210,8 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
         return runwayQueueMap.get(runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(name)).findFirst().orElseThrow(() -> new NoSuchElementException()));
     }
 
+    public long getRunwaysQuantity(){
+        return runwayQueueMap.values().stream().mapToLong(Collection::size).count();
+    }
 
 }
