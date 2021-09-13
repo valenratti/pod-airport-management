@@ -25,6 +25,7 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     private Map<Flight, List<FlightEventsCallbackHandler>> flightSubscriptions;
     private List<FlightDetailsDTO> flightDetailsDTOS;
     private static AirportManagementImpl singletonInstance;
+    private static final Object addRunwayLock = "addRunwayLock";
 
     public AirportManagementImpl() {
         this.runwayQueueMap = new HashMap<>();
@@ -51,12 +52,14 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     /* ManagementService */
 
     @Override
-    public synchronized void addRunway(String runwayName, RunwayCategory category) throws RemoteException, DuplicateRunwayException {
-        Runway runway = new Runway(runwayName, category);
-        if(runwayQueueMap.containsKey(runway)) {
-            throw new DuplicateRunwayException(runwayName);
+    public void addRunway(String runwayName, RunwayCategory category) throws RemoteException, DuplicateRunwayException {
+        synchronized (addRunwayLock) {
+            Runway runway = new Runway(runwayName, category);
+            if(runwayQueueMap.containsKey(runway)) {
+                throw new DuplicateRunwayException(runwayName);
+            }
+            runwayQueueMap.put(runway, new ConcurrentLinkedDeque<>());
         }
-        runwayQueueMap.put(runway, new ConcurrentLinkedDeque<>());
     }
 
     @Override
