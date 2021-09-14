@@ -199,6 +199,7 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
         });
         final Flight flight = new Flight(flightCode, destinationAirport, airlineName, minCategory);
         assignFlightToRunwayIfPossible(flight);
+        flightSubscriptions.put(flight, new ArrayList<>());
     }
 
 
@@ -253,12 +254,25 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
         return runwayQueueMap.get(runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(name)).findFirst().orElseThrow(() -> new NoSuchElementException()));
     }
 
+    @Override
     public long getRunwaysQuantity(){
         return runwayQueueMap.values().stream().mapToLong(Collection::size).count();
     }
 
+    @Override
     public long getFlightsQuantity(){
         return runwayQueueMap.values().stream().map(Collection::size).reduce(0, Integer::sum);
+    }
+
+    @Override
+    public long getRegisterQuantityForFlight(int flightCode){
+        Optional<Flight> optionalFlight = flightSubscriptions.keySet().stream().filter(flight->flight.getId() == flightCode).findFirst();
+        if(optionalFlight.isPresent()) {
+            final Flight flight = optionalFlight.get();
+            return flightSubscriptions.get(flight).size();
+        }else{
+            return 0;
+        }
     }
 
 }

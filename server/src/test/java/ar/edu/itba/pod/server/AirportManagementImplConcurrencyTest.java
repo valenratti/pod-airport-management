@@ -1,5 +1,6 @@
 package ar.edu.itba.pod.server;
 
+import ar.edu.itba.pod.callbacks.FlightEventsCallbackHandler;
 import ar.edu.itba.pod.models.RunwayCategory;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,6 +55,30 @@ public class AirportManagementImplConcurrencyTest {
     private final Runnable addRandomFlight = () -> {
         try {
             airportManagement.requireRunway(getRandomNumber(0, 10000), "Test", "Aerolineas Argentinas", RunwayCategory.A);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    };
+
+    private final Runnable addExampleFlight = () -> {
+        try {
+            airportManagement.requireRunway(123, "Test", "Aerolineas Argentinas", RunwayCategory.A);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    };
+
+    private final Runnable registerForFlightDifferentAirlineSameCode = () -> {
+        try {
+            airportManagement.registerForFlight(UUID.randomUUID().toString(), 123, null);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    };
+
+    private final Runnable registerForFlightSameAirlineSameFlightCode = () -> {
+        try {
+            airportManagement.registerForFlight("Aerolineas Argentinas", 123, null);
         } catch (RemoteException e) {
             e.printStackTrace();
         }
@@ -135,7 +160,50 @@ public class AirportManagementImplConcurrencyTest {
         return random.nextInt(max - min) + min;
     }
 
+    @Test
+    public void registerForSameAirlineSameFlight_ShouldAddOne () throws InterruptedException {
+        //Add Runway
+        ExecutorService newPool = Executors.newFixedThreadPool(10);
+        newPool.submit(addRunwaySameName);
+        newPool.shutdown();
+        newPool.awaitTermination(1000, TimeUnit.SECONDS);
 
+        //Add Flight into runway
+        ExecutorService otherNewPool = Executors.newFixedThreadPool(10);
+        otherNewPool.submit(addExampleFlight);
+        otherNewPool.shutdown();
+        otherNewPool.awaitTermination(1000, TimeUnit.SECONDS);
 
+        //Register for flight
+        for(int i=0; i<10000; i++){
+            pool.submit(registerForFlightSameAirlineSameFlightCode);
+        }
+        pool.shutdown();
+        pool.awaitTermination(1000, TimeUnit.SECONDS);
+        assertEquals(1L, airportManagement.getRegisterQuantityForFlight(123));
+    }
+
+    @Test
+    public void registerForDifferentAirlineSameFlight_ShouldAddAll () throws InterruptedException {
+        //Add Runway
+        ExecutorService newPool = Executors.newFixedThreadPool(10);
+        newPool.submit(addRunwaySameName);
+        newPool.shutdown();
+        newPool.awaitTermination(1000, TimeUnit.SECONDS);
+
+        //Add Flight into runway
+        ExecutorService otherNewPool = Executors.newFixedThreadPool(10);
+        otherNewPool.submit(addExampleFlight);
+        otherNewPool.shutdown();
+        otherNewPool.awaitTermination(1000, TimeUnit.SECONDS);
+
+        //Register for flight
+        for(int i=0; i<10000; i++){
+            pool.submit(registerForFlightDifferentAirlineSameCode);
+        }
+        pool.shutdown();
+        pool.awaitTermination(1000, TimeUnit.SECONDS);
+        assertEquals(10000L, airportManagement.getRegisterQuantityForFlight(123));
+    }
 
 }
