@@ -128,6 +128,26 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
         }
     }
 
+    public void takeOffForTests() throws RemoteException, InterruptedException {
+        synchronized (runwayQueueMap) {
+            runwayQueueMap.keySet().stream().filter(Runway::isOpen).forEach( (runway) -> {
+                Queue<Flight> runwayQueue = runwayQueueMap.get(runway);
+                Flight dispatched = runwayQueue.poll();
+                if (dispatched != null) {
+                    flightDetailsDTOS.add(new FlightDetailsDTO(dispatched.getId(), dispatched.getDestinationAirportCode(), dispatched.getAirlineName(), dispatched.getCategory(), dispatched.getTakeOffCounter(), runway.getName(), runway.getCategory(), runway.isOpen()));
+                }
+                for (Flight flightInQueue : runwayQueue) {
+                    flightInQueue.setTakeOffCounter(flightInQueue.getTakeOffCounter() + 1);
+                }
+                try {
+                    Thread.sleep(100); //TODO chequear si esta ok ponerlo dentro de TRY y Catch. En el metodo reorderFlightsForTest se puso suelto.
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+    }
+
     @Override
     public ReorderFlightsResponseDTO reorderFlights() throws RemoteException {
         Queue<Flight> flightsToReorder = new LinkedList<>();
