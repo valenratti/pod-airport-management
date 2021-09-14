@@ -214,10 +214,8 @@ public class AirportManagementImplConcurrencyTest {
         assertEquals(0L, airportManagement.getRegisterQuantityForFlight(123));
     }
 
-    //TODO ver este test
-    /*
     @Test
-    public void openAndCloseRunwayAtSameTime () throws InterruptedException {
+    public void closeRunwayWhileOpening () throws InterruptedException {
         //Add Runway
         ExecutorService newPool = Executors.newFixedThreadPool(10);
         newPool.submit(addRunwaySameName);
@@ -227,7 +225,7 @@ public class AirportManagementImplConcurrencyTest {
         pool.submit(
         new Thread(() -> {
             try {
-                airportManagement.openRunway("Runway");
+                airportManagement.openRunwayForTest("Runway");
             } catch (RemoteException | InterruptedException e) {
                 e.printStackTrace();
             }
@@ -243,9 +241,50 @@ public class AirportManagementImplConcurrencyTest {
         }));
         pool.shutdown();
         pool.awaitTermination(1000, TimeUnit.SECONDS);
-        assertEquals(0, airportManagement.getQueueForRunway("NewOne").size());
+        boolean response = true;
+        try {
+            response = airportManagement.getRunwayStatus("Runway");
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        assertEquals(false, response);
     }
-     */
+
+    @Test
+    public void openRunwayWhileClosing () throws InterruptedException {
+        //Add Runway
+        ExecutorService newPool = Executors.newFixedThreadPool(10);
+        newPool.submit(addRunwaySameName);
+        newPool.shutdown();
+        newPool.awaitTermination(1000, TimeUnit.SECONDS);
+
+        pool.submit(
+                new Thread(() -> {
+                    try {
+                        airportManagement.closeRunwayForTest("Runway");
+                    } catch (RemoteException | InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }));
+        pool.submit(
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(2000);
+                        airportManagement.openRunway("Runway");
+                    } catch (RemoteException | InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }));
+        pool.shutdown();
+        pool.awaitTermination(1000, TimeUnit.SECONDS);
+        boolean response = false;
+        try {
+            response = airportManagement.getRunwayStatus("Runway");
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        assertEquals(true, response);
+    }
 
     @Test
     public void takeOffWhileRequireRunway_ShouldAddToLessCategory () throws InterruptedException {

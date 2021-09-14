@@ -94,6 +94,24 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
         }
     }
 
+    public boolean openRunwayForTest(String runwayName) throws RemoteException, InterruptedException {
+        synchronized (statusLock) {
+            Optional<Runway> optionalRunway = runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runwayName)).findFirst();
+            if(optionalRunway.isPresent()){
+                Runway runway = optionalRunway.get();
+                if(runway.isOpen()){
+                    throw new IllegalStateException("Runway is already open!");
+                }else{
+                    Thread.sleep(100);
+                    runway.setOpen(true);
+                    return true;
+                }
+            }else{
+                throw new NoSuchElementException("The runway expected does not exist!");
+            }
+        }
+    }
+
     @Override
     public boolean closeRunway(String runwayName) throws RemoteException {
         synchronized (statusLock) {
@@ -103,6 +121,24 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
                 if(!runway.isOpen()){
                     throw new IllegalStateException("Runway is already closed!");
                 }else{
+                    runway.setOpen(false);
+                    return true;
+                }
+            }else{
+                throw new NoSuchElementException("The runway expected does not exist!");
+            }
+        }
+    }
+
+    public boolean closeRunwayForTest(String runwayName) throws RemoteException, InterruptedException {
+        synchronized (statusLock) {
+            Optional<Runway> optionalRunway = runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runwayName)).findFirst();
+            if(optionalRunway.isPresent()){
+                Runway runway = optionalRunway.get();
+                if(!runway.isOpen()){
+                    throw new IllegalStateException("Runway is already closed!");
+                }else{
+                    Thread.sleep(100);
                     runway.setOpen(false);
                     return true;
                 }
@@ -132,17 +168,17 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
         synchronized (runwayQueueMap) {
             runwayQueueMap.keySet().stream().filter(Runway::isOpen).forEach( (runway) -> {
                 Queue<Flight> runwayQueue = runwayQueueMap.get(runway);
+                try {
+                    Thread.sleep(100); //TODO chequear si esta bien dentro de try y catch. en el metodo "reorderFlightsForTest" esta suelto.
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 Flight dispatched = runwayQueue.poll();
                 if (dispatched != null) {
                     flightDetailsDTOS.add(new FlightDetailsDTO(dispatched.getId(), dispatched.getDestinationAirportCode(), dispatched.getAirlineName(), dispatched.getCategory(), dispatched.getTakeOffCounter(), runway.getName(), runway.getCategory(), runway.isOpen()));
                 }
                 for (Flight flightInQueue : runwayQueue) {
                     flightInQueue.setTakeOffCounter(flightInQueue.getTakeOffCounter() + 1);
-                }
-                try {
-                    Thread.sleep(100); //TODO chequear si esta ok ponerlo dentro de TRY y Catch. En el metodo reorderFlightsForTest se puso suelto.
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
             });
         }
