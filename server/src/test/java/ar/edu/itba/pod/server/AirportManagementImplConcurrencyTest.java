@@ -161,7 +161,7 @@ public class AirportManagementImplConcurrencyTest {
     }
 
     @Test
-    public void registerForSameAirlineSameFlight_ShouldAddOne () throws InterruptedException {
+    public void registerForSameAirlineSameFlight_ShouldAddAll () throws InterruptedException {
         //Add Runway
         ExecutorService newPool = Executors.newFixedThreadPool(10);
         newPool.submit(addRunwaySameName);
@@ -180,11 +180,11 @@ public class AirportManagementImplConcurrencyTest {
         }
         pool.shutdown();
         pool.awaitTermination(1000, TimeUnit.SECONDS);
-        assertEquals(1L, airportManagement.getRegisterQuantityForFlight(123));
+        assertEquals(10000L, airportManagement.getRegisterQuantityForFlight(123));
     }
 
     @Test
-    public void registerForDifferentAirlineSameFlight_ShouldAddAll () throws InterruptedException {
+    public void registerForDifferentAirline_ShouldNotAdd () throws InterruptedException {
         //Add Runway
         ExecutorService newPool = Executors.newFixedThreadPool(10);
         newPool.submit(addRunwaySameName);
@@ -203,7 +203,7 @@ public class AirportManagementImplConcurrencyTest {
         }
         pool.shutdown();
         pool.awaitTermination(1000, TimeUnit.SECONDS);
-        assertEquals(10000L, airportManagement.getRegisterQuantityForFlight(123));
+        assertEquals(0L, airportManagement.getRegisterQuantityForFlight(123));
     }
 
 }
