@@ -1,6 +1,7 @@
 package ar.edu.itba.pod.client;
 
 import ar.edu.itba.pod.exceptions.DuplicateRunwayException;
+import ar.edu.itba.pod.models.ReorderFlightsResponseDTO;
 import ar.edu.itba.pod.models.RunwayCategory;
 import ar.edu.itba.pod.services.ManagementService;
 import org.slf4j.Logger;
@@ -17,17 +18,15 @@ public class ManagementClient {
     public static void main(String[] args) throws RemoteException, MalformedURLException, NotBoundException {
         logger.info("Starting management client...");
 
-        // TODO: Funcion null or empty
-
         String serverAddress = System.getProperty("serverAddress");
-        if (serverAddress == null || serverAddress.isEmpty())
+        if (Utils.isNullOrEmpty(serverAddress))
             logger.error("You must provide a server address");
         else {
             ManagementService service = (ManagementService) Naming.lookup("//" + serverAddress + "/management");
 
             String actionName = System.getProperty("action");
 
-            if (actionName.isEmpty()) {
+            if (Utils.isNullOrEmpty(actionName)) {
                 logger.error("You must provide an action");
                 return;
             }
@@ -37,7 +36,7 @@ public class ManagementClient {
                 case "add":
                     minCategory = System.getProperty("category");
                     runwayName = System.getProperty("runway");
-                    if (minCategory.isEmpty() || runwayName.isEmpty()) {
+                    if (Utils.isNullOrEmpty(minCategory) || Utils.isNullOrEmpty(runwayName)) {
                         logger.error("You must provide category and runway with action {} ", actionName);
                         break;
                     }
@@ -52,38 +51,48 @@ public class ManagementClient {
                     }
                     break;
                 case "open":
-                    runwayName = System.getProperty("runwayName");
-                    if (runwayName.isEmpty()) {
+                    runwayName = System.getProperty("runway");
+                    if (Utils.isNullOrEmpty(runwayName)) {
                         logger.error("You must provide the Runway name with action {}", actionName);
                         break;
                     }
-                    service.openRunway(runwayName);
-                    System.out.println("Runway " + runwayName + " is now open");
+                    try {
+                        service.openRunway(runwayName);
+                        System.out.println("Runway " + runwayName + " is now open");
+                    }catch (Exception e){
+                        logger.error(e.getMessage());
+                    }
                     break;
                 case "close":
-                    runwayName = System.getProperty("runwayName");
-                    if (runwayName.isEmpty()) {
+                    runwayName = System.getProperty("runway");
+                    if (Utils.isNullOrEmpty(runwayName)) {
                         logger.error("You must provide the Runway name with action {}", actionName);
                         break;
                     }
-                    service.closeRunway(runwayName);
-                    System.out.println("Runway " + runwayName + " is now close");
+                    try {
+                        service.closeRunway(runwayName);
+                        System.out.println("Runway " + runwayName + " is now close");
+                    }catch (Exception e){
+                        logger.error(e.getMessage());
+                    }
                     break;
                 case "status":
-                    runwayName = System.getProperty("runwayName");
-                    if (runwayName.isEmpty()) {
+                    runwayName = System.getProperty("runway");
+                    if (Utils.isNullOrEmpty(runwayName)) {
                         logger.error("You must provide the Runway name with action {}", actionName);
                         break;
                     }
-                    service.getRunwayStatus(runwayName);
+                    boolean status = service.getRunwayStatus(runwayName);
+                    System.out.println("Runway " + runwayName + " is " + (status?"open":"close"));
                     break;
                 case "takeOff":
                     service.takeOff();
                     System.out.println("Flights took off successfully");
                     break;
                 case "reorder":
-                    service.reorderFlights();
-                    System.out.println("Flights reordered");
+                    ReorderFlightsResponseDTO response = service.reorderFlights();
+                    response.getNotAssignedFlights().forEach(flightCode -> System.out.println("Cannot assign Flight " + flightCode));
+                    System.out.println(response.getAssignedFlightsQty() + " flights assigned");
                     break;
                 default:
                     logger.error("Invalid action {}", actionName);

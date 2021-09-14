@@ -22,15 +22,13 @@ public class RunwayRequestClient {
     public static void main(String[] args) throws MalformedURLException, NotBoundException, RemoteException {
         logger.info("Starting runway request client...");
 
-        // TODO: Funcion null or empty
-
         String serverAddress = System.getProperty("serverAddress");
-        if (serverAddress == null || serverAddress.isEmpty()) {
+        if (Utils.isNullOrEmpty(serverAddress)) {
             logger.error("You must provide a server address");
         } else {
             RunwayService service = (RunwayService) Naming.lookup("//" + serverAddress + "/runway");
             String filePath = System.getProperty("inPath");
-            if (filePath == null || filePath.isEmpty())
+            if (Utils.isNullOrEmpty(filePath))
                 logger.error("You must provide a runway request CSV file");
             else {
                 try {

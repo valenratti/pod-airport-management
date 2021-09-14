@@ -20,16 +20,14 @@ public class QueryClient {
     public static void main(String[] args) throws IOException, NotBoundException {
         logger.info("Starting query client...");
 
-        // TODO: Funcion null or empty
-
         String serverAddress = System.getProperty("serverAddress");
-        if (serverAddress == null || serverAddress.isEmpty()) {
+        if (Utils.isNullOrEmpty(serverAddress)) {
             logger.error("You must provide a server address");
             return;
         }
 
         String outPath = System.getProperty("outPath");
-        if (outPath.isEmpty())
+        if (Utils.isNullOrEmpty(outPath))
             logger.error("You must provide a path");
         else {
             TakeOffQueryService service = (TakeOffQueryService) Naming.lookup("//" + serverAddress + "/query");

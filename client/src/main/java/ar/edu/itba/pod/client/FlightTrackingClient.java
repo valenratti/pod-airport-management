@@ -19,7 +19,7 @@ public class FlightTrackingClient {
         // TODO: Funcion null or empty
 
         String serverAddress = System.getProperty("serverAddress");
-        if (serverAddress == null || serverAddress.isEmpty())
+        if (Utils.isNullOrEmpty(serverAddress))
             logger.error("You must provide the server address");
         else {
             FlightTrackingService service = (FlightTrackingService) Naming.lookup("//" + serverAddress +  "/tracker");
@@ -28,7 +28,7 @@ public class FlightTrackingClient {
             String airlineName = System.getProperty("airline");
             String flightCode = System.getProperty("flightCode");
 
-            if (airlineName.isEmpty() || flightCode.isEmpty()) {
+            if (Utils.isNullOrEmpty(airlineName) || Utils.isNullOrEmpty(flightCode)) {
                 logger.error("You must provide the airline name AND the flight code");
                 return;
             }

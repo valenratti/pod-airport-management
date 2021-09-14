@@ -1,8 +1,12 @@
 package ar.edu.itba.pod.client;
 
 import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 
-public class FlightEventsCallbackHandlerImpl implements ar.edu.itba.pod.callbacks.FlightEventsCallbackHandler {
+public class FlightEventsCallbackHandlerImpl extends UnicastRemoteObject implements ar.edu.itba.pod.callbacks.FlightEventsCallbackHandler {
+    protected FlightEventsCallbackHandlerImpl() throws RemoteException {
+    }
+
     @Override
     public void displayFlightEvents() throws RemoteException {
 
