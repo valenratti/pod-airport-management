@@ -25,7 +25,7 @@ public class AirportManagementImplConcurrencyTest {
 
     private AirportManagementImpl airportManagement;
 
-    private final ExecutorService pool = Executors.newFixedThreadPool(10);
+    private ExecutorService pool = Executors.newFixedThreadPool(10);
 
 
     private final Runnable addRunwayDifferentNameSameCategory = () -> {
@@ -70,6 +70,14 @@ public class AirportManagementImplConcurrencyTest {
 
     private final Runnable addExampleFlight = () -> {
         try {
+            airportManagement.requireRunway(getRandomNumber(0, 10000), "Test", "Aerolineas Argentinas", RunwayCategory.A);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    };
+
+    private final Runnable addExampleFlightFixed = () -> {
+        try {
             airportManagement.requireRunway(123, "Test", "Aerolineas Argentinas", RunwayCategory.A);
         } catch (RemoteException e) {
             e.printStackTrace();
@@ -100,6 +108,7 @@ public class AirportManagementImplConcurrencyTest {
     @BeforeEach
     public void resetInstance(){
         airportManagement = new AirportManagementImpl();
+        pool = Executors.newFixedThreadPool(10);
     }
 
     @Test
@@ -178,7 +187,7 @@ public class AirportManagementImplConcurrencyTest {
 
         //Add Flight into runway
         ExecutorService otherNewPool = Executors.newFixedThreadPool(10);
-        otherNewPool.submit(addExampleFlight);
+        otherNewPool.submit(addExampleFlightFixed);
         otherNewPool.shutdown();
         otherNewPool.awaitTermination(1000, TimeUnit.SECONDS);
 
@@ -215,27 +224,29 @@ public class AirportManagementImplConcurrencyTest {
     }
 
     @Test
-    public void closeRunwayWhileOpening () throws InterruptedException {
+    public void closeRunwayWhileOpening () throws InterruptedException, RemoteException {
         //Add Runway
         ExecutorService newPool = Executors.newFixedThreadPool(10);
         newPool.submit(addRunwaySameName);
         newPool.shutdown();
         newPool.awaitTermination(1000, TimeUnit.SECONDS);
+        airportManagement.closeRunway("Runway");
+
 
         pool.submit(
         new Thread(() -> {
             try {
                 airportManagement.openRunwayForTest("Runway");
-            } catch (RemoteException | InterruptedException e) {
+            } catch (RemoteException | InterruptedException | IllegalStateException e) {
                 e.printStackTrace();
             }
         }));
         pool.submit(
         new Thread(() -> {
             try {
-                Thread.sleep(2000);
+                Thread.sleep(200);
                 airportManagement.closeRunway("Runway");
-            } catch (RemoteException | InterruptedException e) {
+            } catch (RemoteException | InterruptedException | IllegalStateException e) {
                 e.printStackTrace();
             }
         }));
@@ -247,7 +258,7 @@ public class AirportManagementImplConcurrencyTest {
         } catch (RemoteException e) {
             e.printStackTrace();
         }
-        assertEquals(false, response);
+        assertFalse(response);
     }
 
     @Test
@@ -262,16 +273,16 @@ public class AirportManagementImplConcurrencyTest {
                 new Thread(() -> {
                     try {
                         airportManagement.closeRunwayForTest("Runway");
-                    } catch (RemoteException | InterruptedException e) {
+                    } catch (RemoteException | InterruptedException | IllegalStateException e) {
                         e.printStackTrace();
                     }
                 }));
         pool.submit(
                 new Thread(() -> {
                     try {
-                        Thread.sleep(2000);
+                        Thread.sleep(200);
                         airportManagement.openRunway("Runway");
-                    } catch (RemoteException | InterruptedException e) {
+                    } catch (RemoteException | InterruptedException | IllegalStateException e) {
                         e.printStackTrace();
                     }
                 }));
@@ -283,51 +294,7 @@ public class AirportManagementImplConcurrencyTest {
         } catch (RemoteException e) {
             e.printStackTrace();
         }
-        assertEquals(true, response);
+        assertTrue(response);
     }
 
-    @Test
-    public void takeOffWhileRequireRunway_ShouldAddToLessCategory () throws InterruptedException {
-        //Add first runway - category A
-        ExecutorService firstPool = Executors.newFixedThreadPool(10);
-        firstPool.submit(addRunwaySameName);
-        firstPool.shutdown();
-        firstPool.awaitTermination(1000, TimeUnit.SECONDS);
-
-        //Add second runway - category B
-        ExecutorService secondPool = Executors.newFixedThreadPool(10);
-        secondPool.submit(addRunwayCategoryB);
-        secondPool.shutdown();
-        secondPool.awaitTermination(1000, TimeUnit.SECONDS);
-
-        //Add Flight into runway with category A
-        ExecutorService pool = Executors.newFixedThreadPool(10);
-        pool.submit(addExampleFlight);
-        pool.shutdown();
-        pool.awaitTermination(1000, TimeUnit.SECONDS);
-
-        //Now test reorder in parallel with adding a new runway
-        ExecutorService newPool = Executors.newFixedThreadPool(10);
-        newPool.submit(
-                new Thread(() -> {
-                    try {
-                        airportManagement.takeOffForTests();
-                    } catch (RemoteException | InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }));
-        newPool.submit(
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(2000);
-                        airportManagement.requireRunway(111,"ARG","Aerolineas Argentinas", RunwayCategory.A);
-                    } catch (RemoteException | InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }));
-        newPool.shutdown();
-        newPool.awaitTermination(1000, TimeUnit.SECONDS);
-        assertEquals(1, airportManagement.getQueueForRunway("Runway").size());
-        assertEquals(0, airportManagement.getQueueForRunway("RunwayB").size());
-    }
 }
