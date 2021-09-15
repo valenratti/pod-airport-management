@@ -171,6 +171,7 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
                 .min(runwayComparator);
         if(toBeAddedIn.isPresent()) {
             runwayQueueMap.get(toBeAddedIn.get()).add(flight);
+            flightSubscriptions.put(flight, new ArrayList<>());
             return true;
         }else{
             return false;
