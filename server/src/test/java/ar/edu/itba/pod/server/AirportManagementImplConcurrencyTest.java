@@ -25,7 +25,7 @@ public class AirportManagementImplConcurrencyTest {
 
     private AirportManagementImpl airportManagement;
 
-    private final ExecutorService pool = Executors.newFixedThreadPool(10);
+    private ExecutorService pool = Executors.newFixedThreadPool(10);
 
 
     private final Runnable addRunwayDifferentNameSameCategory = () -> {
@@ -100,6 +100,7 @@ public class AirportManagementImplConcurrencyTest {
     @BeforeEach
     public void resetInstance(){
         airportManagement = new AirportManagementImpl();
+        pool = Executors.newFixedThreadPool(10);
     }
 
     @Test

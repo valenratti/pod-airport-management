@@ -14,7 +14,7 @@ public interface FlightEventsCallbackHandler extends Remote, Serializable {
      * @param flightsAhead
      * @throws RemoteException
      */
-    void flightAssignedToRunway(int flightId, String runwayName, int flightsAhead) throws RemoteException;
+    void flightAssignedToRunway(int flightId, String runwayName, int flightsAhead, String destination) throws RemoteException;
 
     /**
      * Function to be executed when the suscribed flight changes it's position in the current queue.
@@ -23,7 +23,7 @@ public interface FlightEventsCallbackHandler extends Remote, Serializable {
      * @param flightsAhead
      * @throws RemoteException
      */
-    void flightChangedPositionInQueue(int flightId, String runwayName, int flightsAhead) throws RemoteException;
+    void flightChangedPositionInQueue(int flightId, String runwayName, int flightsAhead, String destination) throws RemoteException;
 
     /**
      * Function to be executed when the flight departures.
@@ -31,5 +31,5 @@ public interface FlightEventsCallbackHandler extends Remote, Serializable {
      * @param runwayName
      * @throws RemoteException
      */
-    void flightDepartured(int flightId, String runwayName) throws RemoteException;
+    void flightDepartured(int flightId, String runwayName, String destination) throws RemoteException;
 }

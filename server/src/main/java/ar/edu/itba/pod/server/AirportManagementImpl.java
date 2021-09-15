@@ -15,9 +15,14 @@ import ar.edu.itba.pod.services.ManagementService;
 import ar.edu.itba.pod.services.RunwayService;
 import ar.edu.itba.pod.services.TakeOffQueryService;
 
+import java.rmi.NoSuchObjectException;
 import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class AirportManagementImpl implements FlightTrackingService, ManagementService, RunwayService, TakeOffQueryService {
@@ -43,12 +48,55 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
             Optional<Flight> optionalFlight = flightSubscriptions.keySet().stream().filter(flight->flight.getId() == flightCode).findFirst();
             if(optionalFlight.isPresent()){
                 final Flight flight = optionalFlight.get();
-                if(flight.getAirlineName().equals(airlineName))
+                if(flight.getAirlineName().equals(airlineName)) {
                     flightSubscriptions.get(flight).add(callbackHandler);
+                    this.informAssignationToSubscriber(flight, callbackHandler);
+                }
                 else
                     throw new FlightNotFromAirlineException(flightCode, airlineName);
             }else
                 throw new FlightNotInQueueException(flightCode);
+        }
+    }
+
+    private void informAssignationToSubscriber(Flight flight, FlightEventsCallbackHandler callbackHandler){
+        int flightsAhead = new ArrayList<>(runwayQueueMap.get(flight.getCurrentRunway())).indexOf(flight);
+        new Thread(() -> {
+            try {
+                callbackHandler.flightAssignedToRunway(flight.getId(), flight.getCurrentRunway().getName(), flightsAhead, flight.getDestinationAirportCode());
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    private void informDepartureFromQueueToAllSubscribers(Queue<Flight> queue) throws InterruptedException {
+        for(Flight flight : queue) {
+            ExecutorService pool = Executors.newFixedThreadPool(10);
+            for (FlightEventsCallbackHandler callbackHandler : flightSubscriptions.get(flight)) {
+                int flightsAhead = new ArrayList<>(runwayQueueMap.get(flight.getCurrentRunway())).indexOf(flight);
+                pool.submit(() -> {
+                    try {
+                        callbackHandler.flightChangedPositionInQueue(flight.getId(), flight.getCurrentRunway().getName(), flightsAhead, flight.getDestinationAirportCode());
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
+        }
+    }
+
+    private void informDepartureOfFlight(Flight flight){
+        ExecutorService pool = Executors.newFixedThreadPool(10);
+        for(FlightEventsCallbackHandler callbackHandler : flightSubscriptions.get(flight)){
+            int flightsAhead = new ArrayList<>(runwayQueueMap.get(flight.getCurrentRunway())).indexOf(flight);
+            pool.submit( () -> {
+                try {
+                    callbackHandler.flightAssignedToRunway(flight.getId(), flight.getCurrentRunway().getName(), flightsAhead, flight.getDestinationAirportCode());
+                } catch(RemoteException e) {
+                    e.printStackTrace();
+                }
+            });
         }
     }
 
@@ -156,12 +204,30 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
                 Flight dispatched = runwayQueue.poll();
                 if (dispatched != null) {
                     flightDetailsDTOS.add(new FlightDetailsDTO(dispatched.getId(), dispatched.getDestinationAirportCode(), dispatched.getAirlineName(), dispatched.getCategory(), dispatched.getTakeOffCounter(), runway.getName(), runway.getCategory(), runway.isOpen()));
+                    try {
+                        this.informDepartureFromQueueToAllSubscribers(runwayQueue);
+                        this.informDepartureOfFlight(dispatched);
+                        this.closeSubscriptionsToFlight(dispatched);
+                        flightSubscriptions.remove(dispatched);
+                    } catch(InterruptedException e){
+                        e.printStackTrace();
+                    }
                 }
                 for (Flight flightInQueue : runwayQueue) {
                     flightInQueue.setTakeOffCounter(flightInQueue.getTakeOffCounter() + 1);
                 }
             });
         }
+    }
+
+    private void closeSubscriptionsToFlight(Flight flight){
+        flightSubscriptions.get(flight).forEach((c) -> {
+            try {
+                UnicastRemoteObject.unexportObject(c,false);
+            } catch (NoSuchObjectException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     public void takeOffForTests() throws RemoteException, InterruptedException {
@@ -206,11 +272,26 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
             Flight flight = flightsToReorder.poll();
             if(assignFlightToRunwayIfPossible(flight)){
                 reorderFlightsResponseDTO.setAssignedFlightsQty( reorderFlightsResponseDTO.getAssignedFlightsQty() + 1);
+                this.informReorderToSubscribers(flight);
             }else{
                 reorderFlightsResponseDTO.getNotAssignedFlights().add(flight.getId());
             }
         }
         return reorderFlightsResponseDTO;
+    }
+
+    private void informReorderToSubscribers(Flight flight){
+        ExecutorService pool = Executors.newFixedThreadPool(10);
+        for(FlightEventsCallbackHandler callbackHandler : flightSubscriptions.get(flight)){
+            int flightsAhead = new ArrayList<>(runwayQueueMap.get(flight.getCurrentRunway())).indexOf(flight);
+            pool.submit( () -> {
+                try {
+                    callbackHandler.flightAssignedToRunway(flight.getId(), flight.getCurrentRunway().getName(), flightsAhead, flight.getDestinationAirportCode());
+                } catch(RemoteException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
     }
 
     public ReorderFlightsResponseDTO reorderFlightsForTest() throws RemoteException, InterruptedException {
@@ -279,6 +360,7 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
                     .min(runwayComparator);
             if(toBeAddedIn.isPresent()) {
                 runwayQueueMap.get(toBeAddedIn.get()).add(flight);
+                flight.setCurrentRunway(toBeAddedIn.get());
                 return true;
             }else{
                 return false;
