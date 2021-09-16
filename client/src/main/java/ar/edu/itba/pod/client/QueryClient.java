@@ -6,13 +6,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,23 +20,21 @@ public class QueryClient {
     public static void main(String[] args) throws IOException, NotBoundException {
         logger.info("Starting query client...");
 
-        // TODO: Funcion null or empty
-
         String serverAddress = System.getProperty("serverAddress");
-        if (serverAddress == null || serverAddress.isEmpty()) {
+        if (Utils.isNullOrEmpty(serverAddress)) {
             logger.error("You must provide a server address");
             return;
         }
 
         String outPath = System.getProperty("outPath");
-        if (outPath.isEmpty())
+        if (Utils.isNullOrEmpty(outPath))
             logger.error("You must provide a path");
         else {
             TakeOffQueryService service = (TakeOffQueryService) Naming.lookup("//" + serverAddress + "/query");
 
             String airlineName = System.getProperty("airline");
             String runwayName = System.getProperty("runway");
-            boolean emptyAirline = airlineName.isEmpty(), emptyRunway = runwayName.isEmpty();
+            boolean emptyAirline = Utils.isNullOrEmpty(airlineName), emptyRunway = Utils.isNullOrEmpty(runwayName);
 
             if (!emptyAirline && !emptyRunway) {
                 logger.error("You can't provide both runway and airline");

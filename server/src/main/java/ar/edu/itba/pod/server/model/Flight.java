@@ -10,6 +10,7 @@ public class Flight {
     private final String airlineName;
     private final RunwayCategory category;
     private int takeOffCounter;
+    private Runway currentRunway;
 
     public Flight(int id, String destinationAirportCode, String airlineName, RunwayCategory category) {
         this.id = id;
@@ -45,6 +46,14 @@ public class Flight {
 
     public void setTakeOffCounter(int takeOffCounter) {
         this.takeOffCounter = takeOffCounter;
+    }
+
+    public Runway getCurrentRunway() {
+        return currentRunway;
+    }
+
+    public void setCurrentRunway(Runway currentRunway) {
+        this.currentRunway = currentRunway;
     }
 
     @Override
