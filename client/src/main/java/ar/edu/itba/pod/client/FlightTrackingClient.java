@@ -15,10 +15,6 @@ public class FlightTrackingClient {
     private static final Logger logger = LoggerFactory.getLogger(FlightTrackingClient.class);
 
     public static void main(String[] args) throws RemoteException, MalformedURLException, NotBoundException {
-        logger.info("Starting flight tracking client...");
-
-        // TODO: Funcion null or empty
-
         String serverAddress = System.getProperty("serverAddress");
         if (Utils.isNullOrEmpty(serverAddress))
             logger.error("You must provide the server address");

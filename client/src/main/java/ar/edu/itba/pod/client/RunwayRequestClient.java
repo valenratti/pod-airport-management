@@ -20,8 +20,6 @@ public class RunwayRequestClient {
     private static final Logger logger = LoggerFactory.getLogger(RunwayRequestClient.class);
 
     public static void main(String[] args) throws MalformedURLException, NotBoundException, RemoteException {
-        logger.info("Starting runway request client...");
-
         String serverAddress = System.getProperty("serverAddress");
         if (Utils.isNullOrEmpty(serverAddress)) {
             logger.error("You must provide a server address");

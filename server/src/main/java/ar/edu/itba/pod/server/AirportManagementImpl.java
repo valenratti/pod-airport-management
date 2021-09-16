@@ -246,8 +246,7 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
                         try {
                             this.informDepartureOfFlight(dispatched);
                             this.informDepartureFromQueueToAllSubscribers(runwayQueue);
-                            this.closeSubscriptionsToFlight(dispatched);
-                            flightSubscriptions.remove(dispatched); //TODO: revisar
+                            flightSubscriptions.remove(dispatched);
                         } catch(InterruptedException e){
                             e.printStackTrace();
                         }
@@ -261,16 +260,6 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
                 reorderFlightsLock.readLock().unlock();
             }
         }
-    }
-
-    private void closeSubscriptionsToFlight(Flight flight){
-        flightSubscriptions.get(flight).forEach((c) -> {
-            try {
-                UnicastRemoteObject.unexportObject(c,true);
-            } catch (NoSuchObjectException e) {
-                e.printStackTrace();
-            }
-        });
     }
 
     @Override

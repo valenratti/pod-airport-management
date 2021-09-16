@@ -16,8 +16,6 @@ public class ManagementClient {
     private static final Logger logger = LoggerFactory.getLogger(ManagementClient.class);
 
     public static void main(String[] args) throws RemoteException, MalformedURLException, NotBoundException {
-        logger.info("Starting management client...");
-
         String serverAddress = System.getProperty("serverAddress");
         if (Utils.isNullOrEmpty(serverAddress))
             logger.error("You must provide a server address");

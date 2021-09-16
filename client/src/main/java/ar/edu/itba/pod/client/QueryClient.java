@@ -18,8 +18,6 @@ public class QueryClient {
     private static final Logger logger = LoggerFactory.getLogger(QueryClient.class);
 
     public static void main(String[] args) throws IOException, NotBoundException {
-        logger.info("Starting query client...");
-
         String serverAddress = System.getProperty("serverAddress");
         if (Utils.isNullOrEmpty(serverAddress)) {
             logger.error("You must provide a server address");
@@ -57,6 +55,7 @@ public class QueryClient {
 
                 Path path = Paths.get(outPath);
                 Files.write(path, dataLines);
+                logger.info("Query results available in file: " + outPath);
             }
         }
     }
