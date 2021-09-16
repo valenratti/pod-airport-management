@@ -14,7 +14,7 @@ public class FlightEventsCallbackHandlerImpl extends UnicastRemoteObject impleme
 
     @Override
     public void flightAssignedToRunway(int flightId, String runwayName, int flightsAhead, String destination) throws RemoteException {
-        String msg  = "Flight " + flightId + "with destiny " + destination + " was assigned to runway " +
+        String msg  = "Flight " + flightId + " with destiny " + destination + " was assigned to runway " +
                 runwayName + " and there are " + flightsAhead + " flights waiting ahead";
 
         System.out.println(msg);
@@ -22,7 +22,7 @@ public class FlightEventsCallbackHandlerImpl extends UnicastRemoteObject impleme
 
     @Override
     public void flightChangedPositionInQueue(int flightId, String runwayName, int flightsAhead, String destination) throws RemoteException {
-        String msg = "A flight departed from runway " + runwayName + ". Flight " + flightId + "with destiny " + destination  +
+        String msg = "A flight departed from runway " + runwayName + ". Flight " + flightId + " with destiny " + destination  +
                 " has " + flightsAhead + " flights waiting ahead";
 
         System.out.println(msg);
@@ -30,7 +30,7 @@ public class FlightEventsCallbackHandlerImpl extends UnicastRemoteObject impleme
 
     @Override
     public void flightDepartured(int flightId, String runwayName, String destination) throws RemoteException {
-        String msg = "Flight " + flightId + "with destiny " + destination + " departed on runway " + runwayName;
+        String msg = "Flight " + flightId + " with destiny " + destination + " departed on runway " + runwayName;
 
         System.out.println(msg);
     }

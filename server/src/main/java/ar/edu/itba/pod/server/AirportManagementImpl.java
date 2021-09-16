@@ -105,10 +105,9 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     private void informDepartureOfFlight(Flight flight){
         ExecutorService pool = Executors.newFixedThreadPool(10);
         for(FlightEventsCallbackHandler callbackHandler : flightSubscriptions.get(flight)){
-            int flightsAhead = new ArrayList<>(runwayQueueMap.get(flight.getCurrentRunway())).indexOf(flight);
             pool.submit( () -> {
                 try {
-                    callbackHandler.flightAssignedToRunway(flight.getId(), flight.getCurrentRunway().getName(), flightsAhead, flight.getDestinationAirportCode());
+                    callbackHandler.flightDepartured(flight.getId(), flight.getCurrentRunway().getName(), flight.getDestinationAirportCode());
                 } catch(RemoteException e) {
                     e.printStackTrace();
                 }
@@ -245,10 +244,10 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
                     if (dispatched != null) {
                         flightDetailsDTOS.add(new FlightDetailsDTO(dispatched.getId(), dispatched.getDestinationAirportCode(), dispatched.getAirlineName(), dispatched.getCategory(), dispatched.getTakeOffCounter(), runway.getName(), runway.getCategory(), runway.isOpen()));
                         try {
-                            this.informDepartureFromQueueToAllSubscribers(runwayQueue);
                             this.informDepartureOfFlight(dispatched);
+                            this.informDepartureFromQueueToAllSubscribers(runwayQueue);
                             this.closeSubscriptionsToFlight(dispatched);
-                            flightSubscriptions.remove(dispatched);
+                            flightSubscriptions.remove(dispatched); //TODO: revisar
                         } catch(InterruptedException e){
                             e.printStackTrace();
                         }
@@ -267,7 +266,7 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     private void closeSubscriptionsToFlight(Flight flight){
         flightSubscriptions.get(flight).forEach((c) -> {
             try {
-                UnicastRemoteObject.unexportObject(c,false);
+                UnicastRemoteObject.unexportObject(c,true);
             } catch (NoSuchObjectException e) {
                 e.printStackTrace();
             }
@@ -429,17 +428,10 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
         return runwayQueueMap.get(runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(name)).findFirst().orElseThrow(NoSuchElementException::new));
     }
 
-    @Override
     public long getRunwaysQuantity(){
         return runwayQueueMap.values().stream().mapToLong(Collection::size).count();
     }
 
-    @Override
-    public long getFlightsQuantity(){
-        return runwayQueueMap.values().stream().map(Collection::size).reduce(0, Integer::sum);
-    }
-
-    @Override
     public long getRegisterQuantityForFlight(int flightCode){
         Optional<Flight> optionalFlight = flightSubscriptions.keySet().stream().filter(flight->flight.getId() == flightCode).findFirst();
         if(optionalFlight.isPresent()) {

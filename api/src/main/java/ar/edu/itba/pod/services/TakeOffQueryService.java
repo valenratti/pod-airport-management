@@ -27,24 +27,4 @@ public interface TakeOffQueryService extends Remote {
      * @return
      */
     List<FlightDetailsDTO> getTakeoffsByAirline(String airline) throws RemoteException;
-
-
-    /**
-     * Returns the quantity of runways created (open and closed)
-     * @return
-     */
-    long getRunwaysQuantity();
-
-    /**
-     * Returns the queantity of flights created
-     * @return
-     */
-    long getFlightsQuantity();
-
-    /**
-     * Returns the quantity of registers for a particular flight
-     * @param flightCode
-     * @return
-     */
-    long getRegisterQuantityForFlight(int flightCode);
 }
