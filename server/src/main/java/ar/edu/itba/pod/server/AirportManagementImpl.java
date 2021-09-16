@@ -23,21 +23,39 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 public class AirportManagementImpl implements FlightTrackingService, ManagementService, RunwayService, TakeOffQueryService {
-    private Map<Runway, Queue<Flight>> runwayQueueMap;
-    private Map<Flight, List<FlightEventsCallbackHandler>> flightSubscriptions;
-    private List<FlightDetailsDTO> flightDetailsDTOS;
-    private static AirportManagementImpl singletonInstance;
-    private static final Object registerLock = "resgisterLock";
-    private static final Object statusLock = "statusLock";
-    private static final Object addRunwayLock = "addRunwayLock";
+    private final Map<Runway, Queue<Flight>> runwayQueueMap;
+    private final Map<Flight, List<FlightEventsCallbackHandler>> flightSubscriptions;
+    private final List<FlightDetailsDTO> flightDetailsDTOS;
+
+    private final Comparator<Runway> runwayComparator;
+
+    private static final Object registerLock = "resgisterLock", addRunwayLock = "addRunwayLock", takeOffLock = "takeOffLock",
+            requireRunwayLock = "requireRunwayLock", assignFlightToRunwayLock = "assignFlightToRunwayLock";
+    private static final ReadWriteLock reorderFlightsLock = new ReentrantReadWriteLock();
 
     public AirportManagementImpl() {
         this.runwayQueueMap = new HashMap<>();
         this.flightSubscriptions = new HashMap<>();
         this.flightDetailsDTOS = new ArrayList<>();
+        this.runwayComparator = (o1, o2) -> {
+            int sizeComparation = runwayQueueMap.get(o1).size() - runwayQueueMap.get(o2).size();
+            if(sizeComparation != 0){
+                return sizeComparation;
+            }else{
+                int categoryComparation = o1.getCategory().ordinal() - o2.getCategory().ordinal();
+                if(categoryComparation != 0) {
+                    return categoryComparation;
+                } else{
+                    return o1.getName().compareTo(o2.getName());
+                }
+            }
+        };
     }
 
     /* FlightTrackingService */
@@ -106,11 +124,18 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     @Override
     public void addRunway(String runwayName, RunwayCategory category) throws RemoteException, DuplicateRunwayException {
         synchronized (addRunwayLock) {
-            Runway runway = new Runway(runwayName, category);
-            if(runwayQueueMap.containsKey(runway)) {
-                throw new DuplicateRunwayException(runwayName);
+            try {
+                reorderFlightsLock.readLock().lock();
+
+                Runway runway = new Runway(runwayName, category);
+                if (runwayQueueMap.containsKey(runway)) {
+                    throw new DuplicateRunwayException(runwayName);
+                }
+                runwayQueueMap.put(runway, new ConcurrentLinkedQueue<>());
             }
-            runwayQueueMap.put(runway, new ConcurrentLinkedDeque<>());
+            finally {
+                reorderFlightsLock.readLock().unlock();
+            }
         }
     }
 
@@ -126,97 +151,118 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
 
     @Override
     public boolean openRunway(String runwayName) throws RemoteException {
-        synchronized (statusLock) {
+        try {
+            reorderFlightsLock.readLock().lock();
+
             Optional<Runway> optionalRunway = runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runwayName)).findFirst();
-            if(optionalRunway.isPresent()){
+            if (optionalRunway.isPresent()) {
                 Runway runway = optionalRunway.get();
-                if(runway.isOpen()){
-                    throw new IllegalStateException("Runway is already open!");
-                }else{
-                    runway.setOpen(true);
-                    return true;
+                synchronized (optionalRunway.get()) {
+                    if (runway.isOpen()) {
+                        throw new IllegalStateException("Runway is already open!");
+                    } else {
+                        runway.setOpen(true);
+                        return true;
+                    }
                 }
-            }else{
+            } else {
                 throw new NoSuchElementException("The runway expected does not exist!");
             }
+        }
+        finally {
+            reorderFlightsLock.readLock().unlock();
         }
     }
 
     public boolean openRunwayForTest(String runwayName) throws RemoteException, InterruptedException {
-        synchronized (statusLock) {
-            Optional<Runway> optionalRunway = runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runwayName)).findFirst();
-            if(optionalRunway.isPresent()){
-                Runway runway = optionalRunway.get();
-                if(runway.isOpen()){
+        Optional<Runway> optionalRunway = runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runwayName)).findFirst();
+        if(optionalRunway.isPresent()){
+            Runway runway = optionalRunway.get();
+            synchronized (optionalRunway.get()) {
+                if (runway.isOpen()) {
                     throw new IllegalStateException("Runway is already open!");
-                }else{
-                    Thread.sleep(100);
+                } else {
+                    Thread.sleep(1000);
                     runway.setOpen(true);
                     return true;
                 }
-            }else{
-                throw new NoSuchElementException("The runway expected does not exist!");
             }
+        }else{
+            throw new NoSuchElementException("The runway expected does not exist!");
         }
     }
 
     @Override
     public boolean closeRunway(String runwayName) throws RemoteException {
-        synchronized (statusLock) {
+        try {
+            reorderFlightsLock.readLock().lock();
+
             Optional<Runway> optionalRunway = runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runwayName)).findFirst();
-            if(optionalRunway.isPresent()){
+            if (optionalRunway.isPresent()) {
                 Runway runway = optionalRunway.get();
-                if(!runway.isOpen()){
-                    throw new IllegalStateException("Runway is already closed!");
-                }else{
-                    runway.setOpen(false);
-                    return true;
+                synchronized (optionalRunway.get()) {
+                    if (!runway.isOpen()) {
+                        throw new IllegalStateException("Runway is already closed!");
+                    } else {
+                        runway.setOpen(false);
+                        return true;
+                    }
                 }
-            }else{
+            } else {
                 throw new NoSuchElementException("The runway expected does not exist!");
             }
+        }
+        finally {
+            reorderFlightsLock.readLock().unlock();
         }
     }
 
     public boolean closeRunwayForTest(String runwayName) throws RemoteException, InterruptedException {
-        synchronized (statusLock) {
-            Optional<Runway> optionalRunway = runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runwayName)).findFirst();
-            if(optionalRunway.isPresent()){
-                Runway runway = optionalRunway.get();
-                if(!runway.isOpen()){
+        Optional<Runway> optionalRunway = runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(runwayName)).findFirst();
+        if(optionalRunway.isPresent()){
+            Runway runway = optionalRunway.get();
+            synchronized (optionalRunway.get()) {
+                if (!runway.isOpen()) {
                     throw new IllegalStateException("Runway is already closed!");
-                }else{
-                    Thread.sleep(100);
+                } else {
+                    Thread.sleep(1000);
                     runway.setOpen(false);
                     return true;
                 }
-            }else{
-                throw new NoSuchElementException("The runway expected does not exist!");
             }
+        }else{
+            throw new NoSuchElementException("The runway expected does not exist!");
         }
     }
 
     @Override
     public void takeOff() throws RemoteException {
-        synchronized (runwayQueueMap) {
-            runwayQueueMap.keySet().stream().filter(Runway::isOpen).forEach( (runway) -> {
-                Queue<Flight> runwayQueue = runwayQueueMap.get(runway);
-                Flight dispatched = runwayQueue.poll();
-                if (dispatched != null) {
-                    flightDetailsDTOS.add(new FlightDetailsDTO(dispatched.getId(), dispatched.getDestinationAirportCode(), dispatched.getAirlineName(), dispatched.getCategory(), dispatched.getTakeOffCounter(), runway.getName(), runway.getCategory(), runway.isOpen()));
-                    try {
-                        this.informDepartureFromQueueToAllSubscribers(runwayQueue);
-                        this.informDepartureOfFlight(dispatched);
-                        this.closeSubscriptionsToFlight(dispatched);
-                        flightSubscriptions.remove(dispatched);
-                    } catch(InterruptedException e){
-                        e.printStackTrace();
+        synchronized (takeOffLock) {
+            try {
+                reorderFlightsLock.readLock().lock();
+
+                runwayQueueMap.keySet().stream().filter(Runway::isOpen).forEach((runway) -> {
+                    Queue<Flight> runwayQueue = runwayQueueMap.get(runway);
+                    Flight dispatched = runwayQueue.poll();
+                    if (dispatched != null) {
+                        flightDetailsDTOS.add(new FlightDetailsDTO(dispatched.getId(), dispatched.getDestinationAirportCode(), dispatched.getAirlineName(), dispatched.getCategory(), dispatched.getTakeOffCounter(), runway.getName(), runway.getCategory(), runway.isOpen()));
+                        try {
+                            this.informDepartureFromQueueToAllSubscribers(runwayQueue);
+                            this.informDepartureOfFlight(dispatched);
+                            this.closeSubscriptionsToFlight(dispatched);
+                            flightSubscriptions.remove(dispatched);
+                        } catch(InterruptedException e){
+                            e.printStackTrace();
+                        }
                     }
-                }
-                for (Flight flightInQueue : runwayQueue) {
-                    flightInQueue.setTakeOffCounter(flightInQueue.getTakeOffCounter() + 1);
-                }
-            });
+                    for (Flight flightInQueue : runwayQueue) {
+                        flightInQueue.setTakeOffCounter(flightInQueue.getTakeOffCounter() + 1);
+                    }
+                });
+            }
+            finally {
+                reorderFlightsLock.readLock().unlock();
+            }
         }
     }
 
@@ -231,17 +277,20 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     }
 
     public void takeOffForTests() throws RemoteException, InterruptedException {
-        synchronized (runwayQueueMap) {
+        synchronized (takeOffLock) {
             runwayQueueMap.keySet().stream().filter(Runway::isOpen).forEach( (runway) -> {
                 Queue<Flight> runwayQueue = runwayQueueMap.get(runway);
+
                 try {
-                    Thread.sleep(100); //TODO chequear si esta bien dentro de try y catch. en el metodo "reorderFlightsForTest" esta suelto.
+                    Thread.sleep(1000); //TODO chequear si esta bien dentro de try y catch. en el metodo "reorderFlightsForTest" esta suelto.
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
+
                 Flight dispatched = runwayQueue.poll();
                 if (dispatched != null) {
                     flightDetailsDTOS.add(new FlightDetailsDTO(dispatched.getId(), dispatched.getDestinationAirportCode(), dispatched.getAirlineName(), dispatched.getCategory(), dispatched.getTakeOffCounter(), runway.getName(), runway.getCategory(), runway.isOpen()));
+                    // TODO: flightSubscriptions.remove(); and synchronize con requireRunway subscription
                 }
                 for (Flight flightInQueue : runwayQueue) {
                     flightInQueue.setTakeOffCounter(flightInQueue.getTakeOffCounter() + 1);
@@ -252,32 +301,39 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
 
     @Override
     public ReorderFlightsResponseDTO reorderFlights() throws RemoteException {
-        Queue<Flight> flightsToReorder = new LinkedList<>();
-        boolean runwaysAreEmpty = false;
-        while(!runwaysAreEmpty) {
-            runwaysAreEmpty = true;
-            for (Runway runway : runwayQueueMap.keySet()) {
-                Queue<Flight> flights = runwayQueueMap.get(runway);
-                //Validate that there still are flights in runway
-                if(flights.size() > 0) {
-                    flightsToReorder.add(flights.poll());
-                    //Validate that after polling one, it still has something
-                    if(flights.size() > 0)
-                        runwaysAreEmpty = false;
+        try {
+            reorderFlightsLock.writeLock().lock();
+
+            Queue<Flight> flightsToReorder = new LinkedList<>();
+            boolean runwaysAreEmpty = false;
+            while (!runwaysAreEmpty) {
+                runwaysAreEmpty = true;
+                for (Runway runway : runwayQueueMap.keySet()) {
+                    Queue<Flight> flights = runwayQueueMap.get(runway);
+                    //Validate that there still are flights in runway
+                    if (flights.size() > 0) {
+                        flightsToReorder.add(flights.poll());
+                        //Validate that after polling one, it still has something
+                        if (flights.size() > 0)
+                            runwaysAreEmpty = false;
+                    }
                 }
             }
-        }
-        ReorderFlightsResponseDTO reorderFlightsResponseDTO = new ReorderFlightsResponseDTO();
-        while (flightsToReorder.size() > 0) {
-            Flight flight = flightsToReorder.poll();
-            if(assignFlightToRunwayIfPossible(flight)){
-                reorderFlightsResponseDTO.setAssignedFlightsQty( reorderFlightsResponseDTO.getAssignedFlightsQty() + 1);
-                this.informReorderToSubscribers(flight);
-            }else{
-                reorderFlightsResponseDTO.getNotAssignedFlights().add(flight.getId());
+            ReorderFlightsResponseDTO reorderFlightsResponseDTO = new ReorderFlightsResponseDTO();
+            while (flightsToReorder.size() > 0) {
+                Flight flight = flightsToReorder.poll();
+                if (assignFlightToRunwayIfPossible(flight)) {
+                    reorderFlightsResponseDTO.setAssignedFlightsQty(reorderFlightsResponseDTO.getAssignedFlightsQty() + 1);
+                    this.informReorderToSubscribers(flight);
+                } else {
+                    reorderFlightsResponseDTO.getNotAssignedFlights().add(flight.getId());
+                }
             }
+            return reorderFlightsResponseDTO;
         }
-        return reorderFlightsResponseDTO;
+        finally {
+            reorderFlightsLock.writeLock().unlock();
+        }
     }
 
     private void informReorderToSubscribers(Flight flight){
@@ -295,32 +351,39 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     }
 
     public ReorderFlightsResponseDTO reorderFlightsForTest() throws RemoteException, InterruptedException {
-        Queue<Flight> flightsToReorder = new LinkedList<>();
-        boolean runwaysAreEmpty = false;
-        while(!runwaysAreEmpty) {
-            runwaysAreEmpty = true;
-            for (Runway runway : runwayQueueMap.keySet()) {
-                Queue<Flight> flights = runwayQueueMap.get(runway);
-                //Validate that there still are flights in runway
-                if(flights.size() > 0) {
-                    flightsToReorder.add(flights.poll());
-                    //Validate that after polling one, it still has something
-                    if(flights.size() > 0)
-                        runwaysAreEmpty = false;
+        try {
+            reorderFlightsLock.writeLock().lock();
+
+            Queue<Flight> flightsToReorder = new LinkedList<>();
+            boolean runwaysAreEmpty = false;
+            while (!runwaysAreEmpty) {
+                runwaysAreEmpty = true;
+                for (Runway runway : runwayQueueMap.keySet()) {
+                    Queue<Flight> flights = runwayQueueMap.get(runway);
+                    //Validate that there still are flights in runway
+                    if (flights.size() > 0) {
+                        flightsToReorder.add(flights.poll());
+                        //Validate that after polling one, it still has something
+                        if (flights.size() > 0)
+                            runwaysAreEmpty = false;
+                    }
                 }
             }
-        }
-        ReorderFlightsResponseDTO reorderFlightsResponseDTO = new ReorderFlightsResponseDTO();
-        while (flightsToReorder.size() > 0) {
-            Flight flight = flightsToReorder.poll();
-            if(assignFlightToRunwayIfPossible(flight)){
-                reorderFlightsResponseDTO.setAssignedFlightsQty( reorderFlightsResponseDTO.getAssignedFlightsQty() + 1);
-            }else{
-                reorderFlightsResponseDTO.getNotAssignedFlights().add(flight.getId());
+            ReorderFlightsResponseDTO reorderFlightsResponseDTO = new ReorderFlightsResponseDTO();
+            while (flightsToReorder.size() > 0) {
+                Flight flight = flightsToReorder.poll();
+                if (assignFlightToRunwayIfPossible(flight)) {
+                    reorderFlightsResponseDTO.setAssignedFlightsQty(reorderFlightsResponseDTO.getAssignedFlightsQty() + 1);
+                } else {
+                    reorderFlightsResponseDTO.getNotAssignedFlights().add(flight.getId());
+                }
+                Thread.sleep(100);
             }
-            Thread.sleep(100);
+            return reorderFlightsResponseDTO;
         }
-        return reorderFlightsResponseDTO;
+        finally {
+            reorderFlightsLock.writeLock().unlock();
+        }
     }
 
 
@@ -328,33 +391,30 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
 
     @Override
     public void requireRunway(int flightCode, String destinationAirport, String airlineName, RunwayCategory minCategory) throws RemoteException {
-        runwayQueueMap.values().forEach((queue) -> {
-            queue.forEach((flight -> {
-                if(flight.getId() == flightCode)
-                    throw new DuplicatedFlightException((String.valueOf(Integer.valueOf(flightCode))));
-            }));
-        });
-        final Flight flight = new Flight(flightCode, destinationAirport, airlineName, minCategory);
-        assignFlightToRunwayIfPossible(flight);
-        flightSubscriptions.put(flight, new ArrayList<>());
+        try {
+            reorderFlightsLock.readLock().lock();
+
+            synchronized (requireRunwayLock) {
+                runwayQueueMap.values().forEach((queue) -> queue.forEach((flight -> {
+                    if (flight.getId() == flightCode)
+                        throw new DuplicatedFlightException((String.valueOf(Integer.valueOf(flightCode))));
+                })));
+            }
+
+            final Flight flight = new Flight(flightCode, destinationAirport, airlineName, minCategory);
+            if (assignFlightToRunwayIfPossible(flight)) {
+                // TODO: synchronize with takeOff() subscription
+                flightSubscriptions.put(flight, new ArrayList<>());
+            }
+        }
+        finally {
+            reorderFlightsLock.readLock().unlock();
+        }
     }
 
 
     private boolean assignFlightToRunwayIfPossible(Flight flight) {
-        synchronized (runwayQueueMap){
-            final Comparator<Runway> runwayComparator = (o1, o2) -> {
-                int sizeComparation = runwayQueueMap.get(o1).size() - runwayQueueMap.get(o2).size();
-                if(sizeComparation != 0){
-                    return sizeComparation;
-                }else{
-                    int categoryComparation = o1.getCategory().ordinal() - o2.getCategory().ordinal();
-                    if(categoryComparation != 0) {
-                        return categoryComparation;
-                    } else{
-                        return o1.getName().compareTo(o2.getName());
-                    }
-                }
-            };
+        synchronized (assignFlightToRunwayLock){
             Optional<Runway> toBeAddedIn = runwayQueueMap.keySet().stream()
                     .filter((r) -> r.isOpen() && r.getCategory().compareTo(flight.getCategory()) >= 0)
                     .min(runwayComparator);
@@ -389,7 +449,7 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     }
 
     public Queue<Flight> getQueueForRunway(String name){
-        return runwayQueueMap.get(runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(name)).findFirst().orElseThrow(() -> new NoSuchElementException()));
+        return runwayQueueMap.get(runwayQueueMap.keySet().stream().filter((r) -> r.getName().equals(name)).findFirst().orElseThrow(NoSuchElementException::new));
     }
 
     @Override
