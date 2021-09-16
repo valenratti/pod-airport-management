@@ -1,9 +1,10 @@
 package ar.edu.itba.pod.models;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReorderFlightsResponseDTO {
+public class ReorderFlightsResponseDTO implements Serializable {
     List<Integer> notAssignedFlights;
     private int assignedFlightsQty;
 

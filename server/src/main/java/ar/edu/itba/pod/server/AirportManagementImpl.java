@@ -365,7 +365,7 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     /* RunwayService */
 
     @Override
-    public void requireRunway(int flightCode, String destinationAirport, String airlineName, RunwayCategory minCategory) throws RemoteException {
+    public boolean requireRunway(int flightCode, String destinationAirport, String airlineName, RunwayCategory minCategory) throws RemoteException {
         try {
             reorderFlightsLock.readLock().lock();
 
@@ -379,6 +379,9 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
             final Flight flight = new Flight(flightCode, destinationAirport, airlineName, minCategory);
             if (assignFlightToRunwayIfPossible(flight)) {
                 flightSubscriptions.put(flight, new ArrayList<>());
+                return true;
+            }else{
+                return false;
             }
         }
         finally {
@@ -406,18 +409,18 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
     /* TakeOffQueryService */
 
     @Override
-    public List<FlightDetailsDTO> getAllTakeoffs() {
+    public List<FlightDetailsDTO> getAllTakeoffs() throws RemoteException {
         return flightDetailsDTOS;
     }
 
     @Override
-    public List<FlightDetailsDTO> getTakeoffsByRunway(String runway) {
+    public List<FlightDetailsDTO> getTakeoffsByRunway(String runway) throws RemoteException{
         return flightDetailsDTOS.stream().filter((dto) -> dto.getRunwayName().equals(runway))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<FlightDetailsDTO> getTakeoffsByAirline(String airline) {
+    public List<FlightDetailsDTO> getTakeoffsByAirline(String airline) throws RemoteException {
         return flightDetailsDTOS.stream().filter((dto) -> dto.getAirlineName().equals(airline))
                 .collect(Collectors.toList());
     }
