@@ -19,11 +19,7 @@ import java.rmi.NoSuchObjectException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
@@ -41,7 +37,7 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
 
     public AirportManagementImpl() {
         this.runwayQueueMap = new HashMap<>();
-        this.flightSubscriptions = new HashMap<>();
+        this.flightSubscriptions = new ConcurrentHashMap<>();
         this.flightDetailsDTOS = new ArrayList<>();
         this.runwayComparator = (o1, o2) -> {
             int sizeComparation = runwayQueueMap.get(o1).size() - runwayQueueMap.get(o2).size();
@@ -79,13 +75,15 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
 
     private void informAssignationToSubscriber(Flight flight, FlightEventsCallbackHandler callbackHandler){
         int flightsAhead = new ArrayList<>(runwayQueueMap.get(flight.getCurrentRunway())).indexOf(flight);
-        new Thread(() -> {
-            try {
-                callbackHandler.flightAssignedToRunway(flight.getId(), flight.getCurrentRunway().getName(), flightsAhead, flight.getDestinationAirportCode());
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }).start();
+        if(callbackHandler != null) {
+            new Thread(() -> {
+                try {
+                    callbackHandler.flightAssignedToRunway(flight.getId(), flight.getCurrentRunway().getName(), flightsAhead, flight.getDestinationAirportCode());
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
     }
 
     private void informDepartureFromQueueToAllSubscribers(Queue<Flight> queue) throws InterruptedException {
@@ -276,29 +274,6 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
         });
     }
 
-    public void takeOffForTests() throws RemoteException, InterruptedException {
-        synchronized (takeOffLock) {
-            runwayQueueMap.keySet().stream().filter(Runway::isOpen).forEach( (runway) -> {
-                Queue<Flight> runwayQueue = runwayQueueMap.get(runway);
-
-                try {
-                    Thread.sleep(1000); //TODO chequear si esta bien dentro de try y catch. en el metodo "reorderFlightsForTest" esta suelto.
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                Flight dispatched = runwayQueue.poll();
-                if (dispatched != null) {
-                    flightDetailsDTOS.add(new FlightDetailsDTO(dispatched.getId(), dispatched.getDestinationAirportCode(), dispatched.getAirlineName(), dispatched.getCategory(), dispatched.getTakeOffCounter(), runway.getName(), runway.getCategory(), runway.isOpen()));
-                    // TODO: flightSubscriptions.remove(); and synchronize con requireRunway subscription
-                }
-                for (Flight flightInQueue : runwayQueue) {
-                    flightInQueue.setTakeOffCounter(flightInQueue.getTakeOffCounter() + 1);
-                }
-            });
-        }
-    }
-
     @Override
     public ReorderFlightsResponseDTO reorderFlights() throws RemoteException {
         try {
@@ -403,7 +378,6 @@ public class AirportManagementImpl implements FlightTrackingService, ManagementS
 
             final Flight flight = new Flight(flightCode, destinationAirport, airlineName, minCategory);
             if (assignFlightToRunwayIfPossible(flight)) {
-                // TODO: synchronize with takeOff() subscription
                 flightSubscriptions.put(flight, new ArrayList<>());
             }
         }
